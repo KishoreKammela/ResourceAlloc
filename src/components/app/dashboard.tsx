@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, UserCheck, Users } from "lucide-react";
+import { Briefcase, UserCheck, Users, type LucideIcon, type LucideProps } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -13,75 +13,52 @@ import {
   YAxis,
   Tooltip
 } from "recharts";
+import type { Project } from "@/types/project";
 
-const stats = [
-  {
-    title: "Total Employees",
-    value: "102",
-    icon: Users,
-  },
-  {
-    title: "Projects In Progress",
-    value: "12",
-    icon: Briefcase,
-  },
-  {
-    title: "Available for Projects",
-    value: "23",
-    icon: UserCheck,
-  },
-];
+const ICONS: Record<string, LucideIcon> = {
+  Users,
+  Briefcase,
+  UserCheck,
+}
 
-const skillsData = [
-  { name: 'JavaScript', value: 80 },
-  { name: 'React', value: 75 },
-  { name: 'Node.js', value: 60 },
-  { name: 'Python', value: 55 },
-  { name: 'AWS', value: 45 },
-  { name: 'Figma', value: 30 },
-  { name: 'DevOps', value: 25 },
-];
+type Stat = {
+  title: string;
+  value: string;
+  icon: string;
+}
 
-const recentProjects = [
-  {
-    name: "E-commerce Platform Revamp",
-    status: "In Progress",
-    teamSize: 8,
-  },
-  {
-    name: "Mobile Banking App",
-    status: "In Progress",
-    teamSize: 12,
-  },
-  {
-    name: "Cloud Infrastructure Migration",
-    status: "Planning",
-    teamSize: 6,
-  },
-    {
-    name: "AI-Powered Logistics Optimizer",
-    status: "Completed",
-    teamSize: 5,
-  },
-];
+type SkillsData = {
+  name: string;
+  value: number;
+}
 
-export default function Dashboard() {
+type DashboardProps = {
+  stats: Stat[];
+  skillsData: SkillsData[];
+  recentProjects: Project[];
+}
+
+
+export default function Dashboard({ stats, skillsData, recentProjects }: DashboardProps) {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-headline font-bold">Dashboard</h1>
       
       <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((stat) => {
+          const Icon = ICONS[stat.icon];
+          return (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
