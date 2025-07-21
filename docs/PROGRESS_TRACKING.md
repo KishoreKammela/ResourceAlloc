@@ -39,16 +39,16 @@ This section covers the creation of detailed employee profiles and a system for 
 
 ### 2.1 Comprehensive Profile System
 
-| Feature                          | Status       | Details & Pending Tasks                                                                                         |
-| :------------------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------- |
-| **Expand Employee Data Model**   | `✅ Done`    | Updated `src/types/employee.ts` to include fields for professional summary, location, compensation, etc.        |
-| **Update Profile Forms**         | `✅ Done`    | Enhanced `ProfileEditor` components to include inputs for the new fields.                                       |
-| **Display New Profile Info**     | `✅ Done`    | Updated the employee detail page to correctly display all the new profile information.                          |
-| **Profile Completion Tracking**  | `✅ Done`    | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page. |
-| **Profile Verification System**  | `⏳ Pending` | Requires a more complex workflow for admin approvals. Scheduled for a later iteration.                          |
-| **Profile Privacy Controls**     | `⏳ Pending` | Requires updates to Firestore security rules to control field visibility based on user roles.                   |
-| **Profile Export Functionality** | `⏳ Pending` | Will require a library (e.g., for PDF generation) and a new API route. Scheduled for a later iteration.         |
-| **Profile Comparison Tools**     | `⏳ Pending` | A significant UI feature that will be addressed after core profile functionality is complete.                   |
+| Feature                          | Status       | Details & Pending Tasks                                                                                                                                                                            |
+| :------------------------------- | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Expand Employee Data Model**   | `✅ Done`    | Updated `src/types/employee.ts` to include fields for professional summary, location, compensation, etc.                                                                                           |
+| **Update Profile Forms**         | `✅ Done`    | Enhanced `ProfileEditor` components to include inputs for the new fields.                                                                                                                          |
+| **Display New Profile Info**     | `✅ Done`    | Updated the employee detail page to correctly display all the new profile information.                                                                                                             |
+| **Profile Completion Tracking**  | `✅ Done`    | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page.                                                                                    |
+| **Profile Privacy Controls**     | `⏳ Pending` | **Next Up**: Implement Firestore security rules to control field visibility and edit permissions based on user roles (e.g., Employee can edit own, Admin can edit all).                            |
+| **Profile Verification System**  | `⏳ Pending` | **Planned**: Add a `status` field to the Employee model. A more complex UI workflow for admin approvals of profile changes is scheduled for a later iteration.                                     |
+| **Profile Export Functionality** | `⏳ Pending` | **Planned**: Requires a library (e.g., `jspdf`) and a new API route to generate a downloadable PDF of an employee's profile.                                                                       |
+| **Profile Comparison Tools**     | `⏳ Pending` | **Planned**: A significant UI feature that will be addressed after core profile functionality is complete. It will involve a selection mechanism on the main list and a dedicated comparison view. |
 
 ### 2.2 Document Management System
 
