@@ -12,7 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getEmployees, Employee } from '@/app/services/employees';
 
-export const SuggestCandidatesInputSchema = z.object({
+const SuggestCandidatesInputSchema = z.object({
   requiredSkills: z
     .array(z.string())
     .describe('A list of skills required for the project.'),
@@ -26,7 +26,7 @@ const CandidateSchema = z.object({
     matchingSkills: z.array(z.string()).describe("A list of the employee's skills that match the project's requirements."),
 });
 
-export const SuggestCandidatesOutputSchema = z.object({
+const SuggestCandidatesOutputSchema = z.object({
   candidates: z
     .array(CandidateSchema)
     .describe('A list of suitable candidates for the project.'),
