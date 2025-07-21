@@ -4,15 +4,7 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  Loader2,
-  Plus,
-  Upload,
-  User,
-  X,
-  BadgePlus,
-  Trash2,
-} from 'lucide-react';
+import { Loader2, User, X, BadgePlus, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -34,7 +26,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { fileToDataUri } from '@/lib/utils';
 import { createEmployee } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
@@ -48,6 +39,7 @@ import {
 } from '../ui/select';
 import { useAuth } from '@/contexts/auth-context';
 import { updateUserProfile } from '@/services/users.services';
+import { Progress } from '../ui/progress';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -63,12 +55,22 @@ type ProfileCreatorProps = {
   isOnboarding?: boolean;
 };
 
+const steps = [
+  {
+    id: 1,
+    name: 'Basic Information',
+    fields: ['name', 'email', 'title', 'availability', 'workMode'],
+  },
+  { id: 2, name: 'Skills' },
+];
+
 export default function ProfileCreator({
   isOnboarding = false,
 }: ProfileCreatorProps) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
@@ -101,7 +103,7 @@ export default function ProfileCreator({
     }
   };
 
-  const handleSaveProfile: SubmitHandler<ProfileFormValues> = async (data) => {
+  const processForm: SubmitHandler<ProfileFormValues> = async (data) => {
     if (!user?.uid) {
       toast({
         variant: 'destructive',
@@ -121,7 +123,8 @@ export default function ProfileCreator({
 
       // If this is part of onboarding, update the user profile to mark it as complete
       if (isOnboarding) {
-        await updateUserProfile(user.uid, { onboardingCompleted: true });
+        await updateUserProfile(user.uid, { onboardingCompleted: false });
+        await refreshUser();
       }
 
       toast({
@@ -145,6 +148,29 @@ export default function ProfileCreator({
     }
   };
 
+  type FieldName = keyof ProfileFormValues;
+
+  const next = async () => {
+    const fields = steps[currentStep].fields;
+    const output = await form.trigger(fields as FieldName[], {
+      shouldFocus: true,
+    });
+
+    if (!output) return;
+
+    if (currentStep < steps.length - 1) {
+      setCurrentStep((step) => step + 1);
+    } else {
+      await form.handleSubmit(processForm)();
+    }
+  };
+
+  const prev = () => {
+    if (currentStep > 0) {
+      setCurrentStep((step) => step - 1);
+    }
+  };
+
   return (
     <Card className="mx-auto max-w-4xl shadow-lg">
       <CardHeader>
@@ -159,183 +185,225 @@ export default function ProfileCreator({
             : 'Manually enter the details for a new employee.'}
         </CardDescription>
       </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSaveProfile)}>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. Jane Doe"
-                        {...field}
-                        disabled={isOnboarding}
+      <CardContent>
+        {isOnboarding && (
+          <div className="mb-8 space-y-2">
+            <Progress value={((currentStep + 1) / steps.length) * 100} />
+            <p className="text-sm text-muted-foreground">
+              Step {currentStep + 1} of {steps.length}:{' '}
+              {steps[currentStep].name}
+            </p>
+          </div>
+        )}
+
+        <Form {...form}>
+          <form>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                {currentStep === 0 && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. Jane Doe"
+                                {...field}
+                                disabled={isOnboarding}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. jane.doe@example.com"
-                        {...field}
-                        disabled={isOnboarding}
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email Address</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. jane.doe@example.com"
+                                {...field}
+                                disabled={isOnboarding}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. Senior Software Engineer"
-                      {...field}
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. Senior Software Engineer"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="availability"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Availability</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select availability" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Available">Available</SelectItem>
-                        <SelectItem value="On Project">On Project</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="availability"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Availability</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select availability" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Available">
+                                  Available
+                                </SelectItem>
+                                <SelectItem value="On Project">
+                                  On Project
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="workMode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Work Mode</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select work mode" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Remote">Remote</SelectItem>
+                                <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                <SelectItem value="On-site">On-site</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="workMode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Work Mode</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select work mode" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Remote">Remote</SelectItem>
-                        <SelectItem value="Hybrid">Hybrid</SelectItem>
-                        <SelectItem value="On-site">On-site</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+
+                {currentStep === 1 && (
+                  <div className="space-y-4">
+                    <h3 className="font-headline text-lg font-semibold">
+                      Skills
+                    </h3>
+
+                    <div>
+                      <FormLabel>Current Skills</FormLabel>
+                      <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
+                        {skills.map((skill) => (
+                          <Badge
+                            key={skill}
+                            variant="default"
+                            className="flex items-center gap-2 border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/20"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="rounded-full p-0.5 hover:bg-black/10"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                        {skills.length === 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            Add skills below.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <FormLabel>Add Custom Skill</FormLabel>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newSkill}
+                          onChange={(e) => setNewSkill(e.target.value)}
+                          placeholder="e.g. Public Speaking"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddNewSkill();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleAddNewSkill}
+                        >
+                          <BadgePlus className="mr-2 h-4 w-4" />
+                          Add Skill
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="font-headline text-lg font-semibold">Skills</h3>
-
-              <div>
-                <FormLabel>Current Skills</FormLabel>
-                <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                  {skills.map((skill) => (
-                    <Badge
-                      key={skill}
-                      variant="default"
-                      className="flex items-center gap-2 border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/20"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        className="rounded-full p-0.5 hover:bg-black/10"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  {skills.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Add skills below.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <FormLabel>Add Custom Skill</FormLabel>
-                <div className="flex gap-2">
-                  <Input
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="e.g. Public Speaking"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddNewSkill();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddNewSkill}
-                  >
-                    <BadgePlus className="mr-2 h-4 w-4" />
-                    Add Skill
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <User className="mr-2 h-4 w-4" />
-              )}
+              </motion.div>
+            </AnimatePresence>
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={prev}
+          disabled={currentStep === 0 || isSaving}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+        </Button>
+        <Button type="button" onClick={next} disabled={isSaving}>
+          {isSaving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : currentStep === steps.length - 1 ? (
+            <>
+              <User className="mr-2 h-4 w-4" />
               Save Profile
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
+            </>
+          ) : (
+            'Next Step'
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
