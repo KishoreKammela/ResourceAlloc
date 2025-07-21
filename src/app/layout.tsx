@@ -30,28 +30,29 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage =
-      pathname.startsWith('/login') || pathname.startsWith('/signup');
-    const isVerifyEmailPath = pathname.startsWith('/verify-email');
-    const isOnboardingPath = pathname.startsWith('/onboarding');
-    const isAppPath = !isAuthPage && !isVerifyEmailPath && !isOnboardingPath;
+    const isPublicPath =
+      pathname === '/' ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/signup') ||
+      pathname.startsWith('/verify-email');
 
     if (user) {
-      if (!user.emailVerified && !isVerifyEmailPath) {
-        router.push('/verify-email');
-      } else if (user.emailVerified && !user.onboardingCompleted) {
-        if (!isOnboardingPath) {
+      // User is logged in
+      if (!user.emailVerified) {
+        if (!pathname.startsWith('/verify-email')) {
+          router.push('/verify-email');
+        }
+      } else if (!user.onboardingCompleted) {
+        if (!pathname.startsWith('/onboarding/create-profile')) {
           router.push('/onboarding/create-profile');
         }
-      } else if (
-        user.emailVerified &&
-        user.onboardingCompleted &&
-        (isAuthPage || isVerifyEmailPath)
-      ) {
+      } else if (isPublicPath) {
+        // User is fully onboarded but on a public page
         router.push('/dashboard');
       }
     } else {
-      if (isAppPath) {
+      // User is not logged in
+      if (!isPublicPath) {
         router.push('/login');
       }
     }

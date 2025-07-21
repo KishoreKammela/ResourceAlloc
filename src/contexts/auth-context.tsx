@@ -52,21 +52,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
+      // First, get the user profile from Firestore, which contains the role
       const userProfile = await getUserProfile(firebaseUser.uid);
       if (userProfile) {
+        // Only once we have the profile, we create the full user object
         const fullUser: AppUser = {
           ...userProfile,
-          uid: firebaseUser.uid, // Ensure UID is always from the live auth object
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
           emailVerified: firebaseUser.emailVerified,
         };
         setUser(fullUser);
       } else {
+        // If there's a Firebase user but no profile, it's an inconsistent state.
+        // Log them out to be safe.
         await signOut(auth);
         setUser(null);
       }
     } else {
       setUser(null);
     }
+    // Only set loading to false after all async operations are complete
     setLoading(false);
   };
 
@@ -85,7 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       await auth.currentUser.reload();
       await fetchUser(auth.currentUser);
-      setLoading(false);
     }
   };
 
@@ -140,9 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await sendEmailVerification(firebaseUser);
 
-      const userProfileData: Omit<AppUser, 'emailVerified'> = {
+      const userProfileData: Omit<AppUser, 'emailVerified' | 'email'> = {
         uid: firebaseUser.uid,
-        email: firebaseUser.email,
         name: data.name,
         designation: data.designation,
         companyId: newCompany.id,
@@ -169,12 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         details: `New user registered: ${firebaseUser.email}`,
       });
 
-      setUser({
-        ...userProfileData,
-        emailVerified: firebaseUser.emailVerified,
-      });
-
-      return userCredential;
+      // The onAuthStateChanged listener will handle setting the user state.
     } catch (error) {
       setLoading(false);
       throw error;
