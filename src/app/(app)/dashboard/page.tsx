@@ -33,6 +33,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
+      // Wait until the user object is fully loaded to prevent race conditions
+      if (!user) {
+        return;
+      }
+
+      setLoading(true);
       const [employees, projects] = await Promise.all([
         getEmployees(),
         getProjects(),
