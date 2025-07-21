@@ -5,40 +5,47 @@ import { getProjects } from '@/services/projects.services';
 type SkillsData = {
   name: string;
   value: number;
-}
+};
 
 export default async function DashboardPage() {
   const employees = await getEmployees();
   const projects = await getProjects();
 
   const totalEmployees = employees.length;
-  const projectsInProgress = projects.filter(p => p.status === 'In Progress').length;
-  const availableEmployees = employees.filter(e => e.availability === 'Available').length;
+  const projectsInProgress = projects.filter(
+    (p) => p.status === 'In Progress'
+  ).length;
+  const availableEmployees = employees.filter(
+    (e) => e.availability === 'Available'
+  ).length;
 
   const stats = [
     {
-      title: "Total Employees",
+      title: 'Total Employees',
       value: totalEmployees.toString(),
-      icon: "Users",
+      icon: 'Users',
     },
     {
-      title: "Projects In Progress",
+      title: 'Projects In Progress',
       value: projectsInProgress.toString(),
-      icon: "Briefcase",
+      icon: 'Briefcase',
     },
     {
-      title: "Available for Projects",
+      title: 'Available for Projects',
       value: availableEmployees.toString(),
-      icon: "UserCheck",
+      icon: 'UserCheck',
     },
   ];
 
   const skillsCount = employees
-    .flatMap(e => e.skills)
-    .reduce((acc, skill) => {
-      acc[skill] = (acc[skill] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    .flatMap((e) => e.skills)
+    .reduce(
+      (acc, skill) => {
+        acc[skill] = (acc[skill] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
   const topSkills: SkillsData[] = Object.entries(skillsCount)
     .sort(([, a], [, b]) => b - a)
@@ -47,10 +54,9 @@ export default async function DashboardPage() {
 
   const recentProjects = projects.slice(0, 4);
 
-
   return (
     <div className="space-y-8">
-      <Dashboard 
+      <Dashboard
         stats={stats}
         skillsData={topSkills}
         recentProjects={recentProjects}

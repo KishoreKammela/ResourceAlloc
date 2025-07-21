@@ -18,6 +18,7 @@ For a full breakdown of the project's vision, features, and technical details, p
 This is a Next.js application built with TypeScript, Tailwind CSS, ShadCN UI components, and Firebase. It uses Genkit for its AI capabilities.
 
 To get started with development:
+
 1.  Ensure you have Node.js and npm installed.
 2.  Set up your Firebase project and add your configuration details to a `.env.local` file.
 3.  Run `npm install` to install dependencies.
@@ -25,10 +26,10 @@ To get started with development:
 
 ## Built With
 
-*   [Next.js](https://nextjs.org/) - React Framework
-*   [Firebase](https://firebase.google.com/) - Backend Platform (Auth, Firestore, Storage)
-*   [Genkit](https://firebase.google.com/docs/genkit) - AI Framework
-*   [Gemini API](https://ai.google.dev/) - Generative AI Models
-*   [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript
-*   [Tailwind CSS](https://tailwindcss.com/) - Utility-First CSS Framework
-*   [ShadCN UI](https://ui.shadcn.com/) - UI Components
+- [Next.js](https://nextjs.org/) - React Framework
+- [Firebase](https://firebase.google.com/) - Backend Platform (Auth, Firestore, Storage)
+- [Genkit](https://firebase.google.com/docs/genkit) - AI Framework
+- [Gemini API](https://ai.google.dev/) - Generative AI Models
+- [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-First CSS Framework
+- [ShadCN UI](https://ui.shadcn.com/) - UI Components

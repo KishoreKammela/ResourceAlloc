@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -9,8 +8,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +53,8 @@ export default function SignupForm() {
       await signup(data.email, data.password);
       toast({
         title: 'Account Created',
-        description: 'You have been successfully signed up. A verification email has been sent.',
+        description:
+          'You have been successfully signed up. A verification email has been sent.',
       });
       // Force a hard reload to ensure middleware reruns and redirects to verify-email page
       window.location.href = '/';
@@ -48,17 +62,24 @@ export default function SignupForm() {
       toast({
         variant: 'destructive',
         title: 'Signup Failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred.',
       });
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="max-w-sm w-full shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <Card className="w-full max-w-sm shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
-          <CardDescription>Get started by creating a new account.</CardDescription>
+          <CardTitle className="font-headline text-2xl">
+            Create an Account
+          </CardTitle>
+          <CardDescription>
+            Get started by creating a new account.
+          </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -70,7 +91,11 @@ export default function SignupForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -83,7 +108,11 @@ export default function SignupForm() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -92,15 +121,19 @@ export default function SignupForm() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="mr-2 h-4 w-4" />
+                )}
                 Sign Up
               </Button>
-               <p className="text-sm text-center text-muted-foreground">
+              <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link href="/login" className="text-primary hover:underline">
-                    Sign in
+                  Sign in
                 </Link>
-                </p>
+              </p>
             </CardFooter>
           </form>
         </Form>

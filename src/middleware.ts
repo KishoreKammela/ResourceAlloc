@@ -1,11 +1,10 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const sessionCookie = request.cookies.get('firebase-session')?.value;
-  
+
   // Create an absolute URL for the API endpoint
   const sessionApiUrl = new URL('/api/auth/session', request.url);
 
@@ -15,14 +14,14 @@ export async function middleware(request: NextRequest) {
       Cookie: `firebase-session=${sessionCookie || ''}`,
     },
   });
-  
+
   const { isAuthenticated, isEmailVerified } = await response.json();
 
   const authRoutes = ['/login', '/signup'];
   const publicRoutes = ['/', ...authRoutes];
   const verificationRoute = '/verify-email';
   const onboardingRoute = '/onboarding/create-profile';
-  
+
   // If user is authenticated
   if (isAuthenticated) {
     // Redirect away from auth pages if logged in
@@ -35,22 +34,22 @@ export async function middleware(request: NextRequest) {
     if (!isEmailVerified && pathname !== verificationRoute) {
       return NextResponse.redirect(new URL(verificationRoute, request.url));
     }
-    
+
     // If email is verified, but user is on verification page, redirect to dashboard
     if (isEmailVerified && pathname === verificationRoute) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     // Allow access to onboarding if email is verified
     if (isEmailVerified && pathname === onboardingRoute) {
-        return NextResponse.next();
+      return NextResponse.next();
     }
-  } 
+  }
   // If user is not authenticated
   else {
     // Protect all routes except public ones and API routes
     if (!publicRoutes.includes(pathname) && !pathname.startsWith('/api')) {
-       return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 

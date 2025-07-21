@@ -8,48 +8,69 @@
  * - GenerateProjectReportOutput - The return type for the function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { getProjectById } from '@/services/projects.services';
 import type { Project } from '@/types/project';
 
 const GenerateProjectReportInputSchema = z.object({
-  projectId: z.string().describe('The ID of the project to generate a report for.'),
+  projectId: z
+    .string()
+    .describe('The ID of the project to generate a report for.'),
 });
-export type GenerateProjectReportInput = z.infer<typeof GenerateProjectReportInputSchema>;
+export type GenerateProjectReportInput = z.infer<
+  typeof GenerateProjectReportInputSchema
+>;
 
 const GenerateProjectReportOutputSchema = z.object({
-  summary: z.string().describe("A high-level summary of the project's current status, progress, and outlook."),
-  achievements: z.array(z.string()).describe("A list of key achievements or milestones that have been recently met."),
-  risks: z.array(z.string()).describe("A list of potential risks, blockers, or concerns that may impact the project's timeline or success."),
+  summary: z
+    .string()
+    .describe(
+      "A high-level summary of the project's current status, progress, and outlook."
+    ),
+  achievements: z
+    .array(z.string())
+    .describe(
+      'A list of key achievements or milestones that have been recently met.'
+    ),
+  risks: z
+    .array(z.string())
+    .describe(
+      "A list of potential risks, blockers, or concerns that may impact the project's timeline or success."
+    ),
 });
-export type GenerateProjectReportOutput = z.infer<typeof GenerateProjectReportOutputSchema>;
+export type GenerateProjectReportOutput = z.infer<
+  typeof GenerateProjectReportOutputSchema
+>;
 
 // Tool to get project details
 const getProjectByIdTool = ai.defineTool(
-    {
-        name: 'getProjectById',
-        description: 'Get the full details of a project by its ID, including assigned team members.',
-        inputSchema: z.object({ id: z.string() }),
-        outputSchema: z.custom<Project>(),
-    },
-    async ({ id }) => {
-        const project = await getProjectById(id);
-        if (!project) {
-            throw new Error('Project not found');
-        }
-        return project;
+  {
+    name: 'getProjectById',
+    description:
+      'Get the full details of a project by its ID, including assigned team members.',
+    inputSchema: z.object({ id: z.string() }),
+    outputSchema: z.custom<Project>(),
+  },
+  async ({ id }) => {
+    const project = await getProjectById(id);
+    if (!project) {
+      throw new Error('Project not found');
     }
+    return project;
+  }
 );
 
-export async function generateProjectReport(input: GenerateProjectReportInput): Promise<GenerateProjectReportOutput> {
+export async function generateProjectReport(
+  input: GenerateProjectReportInput
+): Promise<GenerateProjectReportOutput> {
   return generateProjectReportFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateProjectReportPrompt',
-  input: {schema: GenerateProjectReportInputSchema},
-  output: {schema: GenerateProjectReportOutputSchema},
+  input: { schema: GenerateProjectReportInputSchema },
+  output: { schema: GenerateProjectReportOutputSchema },
   tools: [getProjectByIdTool],
   prompt: `You are an expert Project Manager. Your task is to generate a concise and insightful status report for a project.
   
@@ -69,8 +90,8 @@ const generateProjectReportFlow = ai.defineFlow(
     inputSchema: GenerateProjectReportInputSchema,
     outputSchema: GenerateProjectReportOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );

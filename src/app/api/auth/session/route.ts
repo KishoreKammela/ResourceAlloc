@@ -14,8 +14,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const decodedToken = await getAuth().verifySessionCookie(sessionCookie, true);
-    return NextResponse.json({ isAuthenticated: true, isEmailVerified: decodedToken.email_verified }, { status: 200 });
+    const decodedToken = await getAuth().verifySessionCookie(
+      sessionCookie,
+      true
+    );
+    return NextResponse.json(
+      { isAuthenticated: true, isEmailVerified: decodedToken.email_verified },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json({ isAuthenticated: false }, { status: 200 });
   }

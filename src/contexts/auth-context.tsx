@@ -1,15 +1,20 @@
-
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { 
-    getAuth, 
-    onAuthStateChanged, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    signOut, 
-    sendEmailVerification,
-    type User as FirebaseUser
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendEmailVerification,
+  type User as FirebaseUser,
 } from 'firebase/auth';
 import { app } from '@/lib/firebase/config';
 import { createUserProfile, getUserProfile } from '@/services/users.services';
@@ -17,14 +22,13 @@ import { getEmployeeByUid } from '@/services/employees.services';
 import type { AppUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
 
-
 interface AuthContextType {
-    user: AppUser | null;
-    isEmailVerified: boolean;
-    loading: boolean;
-    login: (email: string, pass: string) => Promise<any>;
-    signup: (email: string, pass: string) => Promise<any>;
-    logout: () => Promise<any>;
+  user: AppUser | null;
+  isEmailVerified: boolean;
+  loading: boolean;
+  login: (email: string, pass: string) => Promise<any>;
+  signup: (email: string, pass: string) => Promise<any>;
+  logout: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,125 +36,136 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const auth = getAuth(app);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<AppUser | null>(null);
-    const [isEmailVerified, setIsEmailVerified] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
-    const pathname = usePathname();
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                // Manually reload the user to get the latest emailVerified status
-                await firebaseUser.reload();
-                const freshUser = getAuth().currentUser;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Manually reload the user to get the latest emailVerified status
+        await firebaseUser.reload();
+        const freshUser = getAuth().currentUser;
 
-                if (freshUser) {
-                    setIsEmailVerified(freshUser.emailVerified);
-                    const userProfile = await getUserProfile(freshUser.uid);
-                    
-                    if(userProfile) {
-                        setUser({...userProfile, emailVerified: freshUser.emailVerified});
+        if (freshUser) {
+          setIsEmailVerified(freshUser.emailVerified);
+          const userProfile = await getUserProfile(freshUser.uid);
 
-                        // Onboarding check
-                        if (userProfile.role === 'Employee' && freshUser.emailVerified) {
-                            const employeeProfile = await getEmployeeByUid(freshUser.uid);
-                            if (!employeeProfile && pathname !== '/onboarding/create-profile') {
-                                router.push('/onboarding/create-profile');
-                            }
-                        }
+          if (userProfile) {
+            setUser({ ...userProfile, emailVerified: freshUser.emailVerified });
 
-                    } else {
-                        // This could happen if user exists in Auth but not in Firestore.
-                        await createUserProfile(freshUser.uid, freshUser.email);
-                        const newUserProfile = await getUserProfile(freshUser.uid);
-                        setUser(newUserProfile);
-                    }
-                }
-
-            } else {
-                setUser(null);
-                setIsEmailVerified(false);
+            // Onboarding check
+            if (userProfile.role === 'Employee' && freshUser.emailVerified) {
+              const employeeProfile = await getEmployeeByUid(freshUser.uid);
+              if (
+                !employeeProfile &&
+                pathname !== '/onboarding/create-profile'
+              ) {
+                router.push('/onboarding/create-profile');
+              }
             }
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [pathname, router]);
-
-    const login = async (email: string, pass: string) => {
-        setLoading(true);
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-            const idToken = await userCredential.user.getIdToken();
-            
-            await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ idToken }),
-            });
-
-        } finally {
-            setLoading(false);
+          } else {
+            // This could happen if user exists in Auth but not in Firestore.
+            await createUserProfile(freshUser.uid, freshUser.email);
+            const newUserProfile = await getUserProfile(freshUser.uid);
+            setUser(newUserProfile);
+          }
         }
-    };
+      } else {
+        setUser(null);
+        setIsEmailVerified(false);
+      }
+      setLoading(false);
+    });
 
-    const signup = async (email: string, pass: string) => {
-        setLoading(true);
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-            await sendEmailVerification(userCredential.user);
-            await createUserProfile(userCredential.user.uid, userCredential.user.email);
-            
-            const idToken = await userCredential.user.getIdToken();
-             await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ idToken }),
-            });
-            
-            return userCredential;
-        } finally {
-            setLoading(false);
-        }
-    };
+    return () => unsubscribe();
+  }, [pathname, router]);
 
-    const logout = async () => {
-        setLoading(true);
-        try {
-            await signOut(auth);
-            await fetch('/api/auth/logout', { method: 'POST' });
-        } finally {
-            setLoading(false);
-            // Force a reload to clear all state and re-run middleware
-            window.location.href = '/login';
-        }
-    };
+  const login = async (email: string, pass: string) => {
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+      const idToken = await userCredential.user.getIdToken();
 
-    const value = {
-        user,
-        isEmailVerified,
-        loading,
-        login,
-        signup,
-        logout
-    };
+      await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {!loading && children}
-        </AuthContext.Provider>
-    );
+  const signup = async (email: string, pass: string) => {
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+      await sendEmailVerification(userCredential.user);
+      await createUserProfile(
+        userCredential.user.uid,
+        userCredential.user.email
+      );
+
+      const idToken = await userCredential.user.getIdToken();
+      await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      return userCredential;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await signOut(auth);
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      setLoading(false);
+      // Force a reload to clear all state and re-run middleware
+      window.location.href = '/login';
+    }
+  };
+
+  const value = {
+    user,
+    isEmailVerified,
+    loading,
+    login,
+    signup,
+    logout,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

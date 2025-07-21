@@ -1,17 +1,22 @@
-
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { PlusCircle, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { getProjects } from '@/services/projects.services';
 import type { Project } from '@/types/project';
-import { useAuth } from "@/contexts/auth-context";
-import { useEffect, useState } from "react";
-
+import { useAuth } from '@/contexts/auth-context';
+import { useEffect, useState } from 'react';
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -20,13 +25,12 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     async function fetchProjects() {
-        const projs = await getProjects();
-        setProjects(projs);
-        setLoading(false);
+      const projs = await getProjects();
+      setProjects(projs);
+      setLoading(false);
     }
     fetchProjects();
   }, []);
-
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -39,13 +43,14 @@ export default function ProjectsPage() {
       default:
         return 'text-foreground';
     }
-  }
+  };
 
-  const canCreateProject = user?.role === 'Admin' || user?.role === 'Super Admin';
+  const canCreateProject =
+    user?.role === 'Admin' || user?.role === 'Super Admin';
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -54,14 +59,14 @@ export default function ProjectsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-headline font-bold">Projects</h1>
+        <h1 className="font-headline text-3xl font-bold">Projects</h1>
         {canCreateProject && (
-            <Button asChild>
+          <Button asChild>
             <Link href="/projects/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Project
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Project
             </Link>
-            </Button>
+          </Button>
         )}
       </div>
 
@@ -83,14 +88,17 @@ export default function ProjectsPage() {
               {projects.map((project: Project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">
-                     <Link href={`/projects/${project.id}`} className="hover:underline text-primary">
-                        {project.name}
+                    <Link
+                      href={`/projects/${project.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {project.name}
                     </Link>
                   </TableCell>
                   <TableCell>{project.client}</TableCell>
                   <TableCell>{project.timeline}</TableCell>
                   <TableCell>
-                     <Badge 
+                    <Badge
                       variant="outline"
                       className={getStatusBadgeClass(project.status)}
                     >
@@ -99,17 +107,20 @@ export default function ProjectsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-               {projects.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                           No projects have been created yet.
-                        </TableCell>
-                    </TableRow>
-                )}
+              {projects.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No projects have been created yet.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

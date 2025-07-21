@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,8 +8,8 @@
  * - SuggestCandidatesOutput - The return type for the suggestCandidates function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { getEmployees } from '@/services/employees.services';
 import type { Employee } from '@/types/employee';
 
@@ -19,14 +18,24 @@ const SuggestCandidatesInputSchema = z.object({
     .array(z.string())
     .describe('A list of skills required for the project.'),
 });
-export type SuggestCandidatesInput = z.infer<typeof SuggestCandidatesInputSchema>;
+export type SuggestCandidatesInput = z.infer<
+  typeof SuggestCandidatesInputSchema
+>;
 
 const CandidateSchema = z.object({
-    employeeId: z.string().describe("The unique ID of the employee."),
-    name: z.string().describe("The full name of the employee."),
-    title: z.string().describe("The employee's job title."),
-    justification: z.string().describe("A brief justification for why this employee is a good fit for the project, based on their skills and role in the team."),
-    matchingSkills: z.array(z.string()).describe("A list of the employee's skills that match the project's requirements."),
+  employeeId: z.string().describe('The unique ID of the employee.'),
+  name: z.string().describe('The full name of the employee.'),
+  title: z.string().describe("The employee's job title."),
+  justification: z
+    .string()
+    .describe(
+      'A brief justification for why this employee is a good fit for the project, based on their skills and role in the team.'
+    ),
+  matchingSkills: z
+    .array(z.string())
+    .describe(
+      "A list of the employee's skills that match the project's requirements."
+    ),
 });
 
 const SuggestCandidatesOutputSchema = z.object({
@@ -40,17 +49,16 @@ export type SuggestCandidatesOutput = z.infer<
 
 // Tool to get all available employees
 const getAllEmployeesTool = ai.defineTool(
-    {
-        name: 'getAllEmployees',
-        description: 'Get a list of all employees and their skills.',
-        inputSchema: z.object({}),
-        outputSchema: z.array(z.custom<Employee>()),
-    },
-    async () => {
-        return await getEmployees();
-    }
+  {
+    name: 'getAllEmployees',
+    description: 'Get a list of all employees and their skills.',
+    inputSchema: z.object({}),
+    outputSchema: z.array(z.custom<Employee>()),
+  },
+  async () => {
+    return await getEmployees();
+  }
 );
-
 
 export async function suggestCandidates(
   input: SuggestCandidatesInput
@@ -60,8 +68,8 @@ export async function suggestCandidates(
 
 const prompt = ai.definePrompt({
   name: 'suggestCandidatesPrompt',
-  input: {schema: SuggestCandidatesInputSchema},
-  output: {schema: SuggestCandidatesOutputSchema},
+  input: { schema: SuggestCandidatesInputSchema },
+  output: { schema: SuggestCandidatesOutputSchema },
   tools: [getAllEmployeesTool],
   prompt: `You are an expert HR strategist specializing in building effective project teams.
   
@@ -80,8 +88,8 @@ const suggestCandidatesFlow = ai.defineFlow(
     inputSchema: SuggestCandidatesInputSchema,
     outputSchema: SuggestCandidatesOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );
