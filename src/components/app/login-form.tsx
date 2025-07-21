@@ -55,8 +55,7 @@ export default function LoginForm() {
         title: 'Login Successful',
         description: 'Welcome back! Redirecting...',
       });
-      // Force a hard reload to ensure middleware reruns
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (error) {
       toast({
         variant: 'destructive',

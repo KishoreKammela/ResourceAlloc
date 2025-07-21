@@ -55,8 +55,7 @@ export default function SignupForm() {
         title: 'Account Created',
         description: 'You have been successfully signed up. Welcome!',
       });
-      // Force a hard reload to ensure middleware reruns and redirects correctly
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (error) {
       toast({
         variant: 'destructive',

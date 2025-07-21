@@ -14,13 +14,22 @@ import { Nav } from '@/components/app/nav';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const publicPages = ['/', '/login', '/signup'];
   const isPublicPage = publicPages.includes(pathname);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   // If no user, or on a public page, or on onboarding, don't show the sidebar layout
   if (!user || isPublicPage || pathname.startsWith('/onboarding')) {

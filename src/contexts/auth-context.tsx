@@ -41,27 +41,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       if (firebaseUser) {
         const userProfile = await getUserProfile(firebaseUser.uid);
 
         if (userProfile) {
           setUser(userProfile);
-
           // Onboarding check
-          if (userProfile.role === 'Employee') {
+          if (
+            userProfile.role === 'Employee' &&
+            pathname !== '/onboarding/create-profile'
+          ) {
             const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
-            if (!employeeProfile && pathname !== '/onboarding/create-profile') {
+            if (!employeeProfile) {
               router.push('/onboarding/create-profile');
             }
           }
         } else {
           // This could happen if user exists in Auth but not in Firestore.
+          // Create the profile and then set the user state.
           await createUserProfile(firebaseUser.uid, firebaseUser.email);
           const newUserProfile = await getUserProfile(firebaseUser.uid);
           setUser(newUserProfile);
         }
       } else {
         setUser(null);
+        const isProtectedRoute =
+          !['/', '/login', '/signup'].includes(pathname) &&
+          !pathname.startsWith('/api');
+        if (isProtectedRoute) {
+          router.push('/login');
+        }
       }
       setLoading(false);
     });
@@ -71,64 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        pass
-      );
-      const idToken = await userCredential.user.getIdToken();
-
-      await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-    } finally {
-      setLoading(false);
-    }
+    await signInWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged will handle the rest
   };
 
   const signup = async (email: string, pass: string) => {
     setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        pass
-      );
-      await createUserProfile(
-        userCredential.user.uid,
-        userCredential.user.email
-      );
-
-      const idToken = await userCredential.user.getIdToken();
-      await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-
-      return userCredential;
-    } finally {
-      setLoading(false);
-    }
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      pass
+    );
+    await createUserProfile(
+      userCredential.user.uid,
+      userCredential.user.email
+    );
+    // onAuthStateChanged will handle the rest
   };
 
   const logout = async () => {
     setLoading(true);
-    try {
-      await signOut(auth);
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } finally {
-      setLoading(false);
-      // Force a reload to clear all state and re-run middleware
-      window.location.href = '/login';
-    }
+    await signOut(auth);
+    // onAuthStateChanged will handle redirecting to /login
   };
 
   const value = {
@@ -141,7 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? (
+        <div className="flex h-screen items-center justify-center">
+          {/* You can replace this with a more sophisticated loading spinner */}
+          <p>Loading...</p>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }
