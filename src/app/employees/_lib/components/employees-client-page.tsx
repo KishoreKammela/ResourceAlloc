@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import type { Employee } from '@/types/employee';
+import { Search } from 'lucide-react';
 
 export default function EmployeesClientPage({ employees: initialEmployees }: { employees: Employee[] }) {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [workModeFilter, setWorkModeFilter] = useState('all');
+
+  const filteredEmployees = useMemo(() => {
+    return initialEmployees.filter(employee => {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      
+      const matchesSearch = searchTerm
+        ? employee.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+          employee.skills.some(skill => skill.toLowerCase().includes(lowerCaseSearchTerm))
+        : true;
+
+      const matchesAvailability = availabilityFilter !== 'all'
+        ? employee.availability === availabilityFilter
+        : true;
+        
+      const matchesWorkMode = workModeFilter !== 'all'
+        ? employee.workMode === workModeFilter
+        : true;
+
+      return matchesSearch && matchesAvailability && matchesWorkMode;
+    });
+  }, [initialEmployees, searchTerm, availabilityFilter, workModeFilter]);
+
 
   return (
     <>
@@ -20,28 +45,33 @@ export default function EmployeesClientPage({ employees: initialEmployees }: { e
           <CardTitle>Filter & Search</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input placeholder="Search by name or skill..." />
-            <Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input 
+              placeholder="Search by name or skill..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Select onValueChange={setAvailabilityFilter} value={availabilityFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by availability" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="on-project">On Project</SelectItem>
+                <SelectItem value="all">All Availabilities</SelectItem>
+                <SelectItem value="Available">Available</SelectItem>
+                <SelectItem value="On Project">On Project</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select onValueChange={setWorkModeFilter} value={workModeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by work mode" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="remote">Remote</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
-                <SelectItem value="on-site">On-site</SelectItem>
+                <SelectItem value="all">All Work Modes</SelectItem>
+                <SelectItem value="Remote">Remote</SelectItem>
+                <SelectItem value="Hybrid">Hybrid</SelectItem>
+                <SelectItem value="On-site">On-site</SelectItem>
               </SelectContent>
             </Select>
-            <Button>Search</Button>
           </div>
         </CardContent>
       </Card>
@@ -62,7 +92,7 @@ export default function EmployeesClientPage({ employees: initialEmployees }: { e
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((employee) => (
+              {filteredEmployees.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">
                      <Link href={`/employees/${employee.id}`} className="hover:underline text-primary">
@@ -72,9 +102,10 @@ export default function EmployeesClientPage({ employees: initialEmployees }: { e
                   <TableCell>{employee.title}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {employee.skills.map((skill) => (
+                      {employee.skills.slice(0, 5).map((skill) => (
                         <Badge key={skill} variant="secondary">{skill}</Badge>
                       ))}
+                      {employee.skills.length > 5 && <Badge variant="outline">+{employee.skills.length - 5} more</Badge>}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -85,6 +116,13 @@ export default function EmployeesClientPage({ employees: initialEmployees }: { e
                   <TableCell>{employee.workMode}</TableCell>
                 </TableRow>
               ))}
+                {filteredEmployees.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                            No employees match your criteria.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
           </Table>
         </CardContent>
