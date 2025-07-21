@@ -2,41 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+    
     // Helper functions
     function isSuperAdmin() {
       return request.auth.token.role == 'Super Admin';
     }
-    
+
     function isAdmin() {
-      return request.auth.token.role == 'Admin' || request.auth.token.role == 'Super Admin';
+      return request.auth.token.role in ['Admin', 'Super Admin'];
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
     // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId || isAdmin();
+      allow read: if isOwner(userId) || isSuperAdmin();
+      allow create: if request.auth != null;
+      allow update: if isOwner(userId) || isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
-
-    // Companies collection
-    match /companies/{companyId} {
-      allow read, write: if isAdmin();
-    }
-
+    
     // Employees collection
     match /employees/{employeeId} {
-      allow list: if request.auth != null;
-      allow read: if request.auth.uid == resource.data.uid || isAdmin();
+      allow list: if isAdmin();
+      allow read: if request.auth != null;
       allow create: if isAdmin();
-      allow update, delete: if request.auth.uid == resource.data.uid || isAdmin();
+      allow update, delete: if isAdmin() || isOwner(resource.data.uid);
     }
-
+    
     // Projects collection
     match /projects/{projectId} {
       allow read, list, create, update, delete: if isAdmin();
     }
 
-    // Audit Logs collection
+    // Companies collection
+    match /companies/{companyId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Audit logs collection
     match /audit_logs/{logId} {
+      // Only admins can read logs. All authenticated users can write them.
       allow read: if isAdmin();
       allow create: if request.auth != null;
     }
