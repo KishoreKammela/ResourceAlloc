@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running pre-commit checks..."
+
+# 1. Format code
+npm run format
+if [ $? -ne 0 ]; then
+    echo "Code formatting failed."
+    exit 1
+fi
+
+# 2. Check for linting errors (will exit on errors by default)
+npm run lint -- --fix
+if [ $? -ne 0 ]; then
+    echo "Linting failed with errors."
+    exit 1
+fi
+
+# 3. Perform type checking
+npm run typecheck
+if [ $? -ne 0 ]; then
+    echo "TypeScript type checking failed."
+    exit 1
+fi
+
+# 4. Add any changes from formatting/linting to the commit
+git add .
+
+echo "Pre-commit checks passed!"
+exit 0
