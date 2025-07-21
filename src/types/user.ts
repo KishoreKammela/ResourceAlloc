@@ -10,4 +10,17 @@ export interface AppUser {
   email: string | null;
   role: UserRole;
   emailVerified?: boolean;
+  name?: string;
+  designation?: 'CEO' | 'Hiring Manager' | string;
+  companyId?: string;
+}
+
+export interface NewCompanyUser {
+  name: string;
+  designation: 'CEO' | 'Hiring Manager';
+  email: string;
+  password: string;
+  companyName: string;
+  companyWebsite?: string;
+  companySize: '1-10' | '11-50' | '51-200' | '201-500' | '500+';
 }

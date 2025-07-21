@@ -4,13 +4,9 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export async function createUserProfile(
   uid: string,
-  email: string | null
+  userData: Omit<AppUser, 'emailVerified'>
 ): Promise<void> {
-  await setDoc(doc(db, 'users', uid), {
-    uid,
-    email,
-    role: 'Employee', // Default role
-  });
+  await setDoc(doc(db, 'users', uid), userData);
 }
 
 export async function getUserProfile(uid: string): Promise<AppUser | null> {

@@ -16,14 +16,15 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { createUserProfile, getUserProfile } from '@/services/users.services';
-import type { AppUser } from '@/types/user';
+import type { AppUser, NewCompanyUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
+import { addCompany } from '@/services/companies.services';
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string) => Promise<any>;
+  signup: (data: NewCompanyUser) => Promise<any>;
   logout: () => Promise<any>;
 }
 
@@ -41,32 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (firebaseUser) {
           const userProfile = await getUserProfile(firebaseUser.uid);
+          setUser(userProfile);
 
-          if (userProfile) {
-            setUser(userProfile);
-            // Onboarding check
-            if (
-              userProfile.role === 'Employee' &&
-              !pathname.startsWith('/onboarding')
-            ) {
-              // This part will be handled by page-level logic to avoid complexity here.
-            }
-          } else {
-            // This could happen if user exists in Auth but not in Firestore.
-            // Create the profile and then set the user state.
-            try {
-              await createUserProfile(firebaseUser.uid, firebaseUser.email);
-              const newUserProfile = await getUserProfile(firebaseUser.uid);
-              if (newUserProfile) {
-                setUser(newUserProfile);
-                router.push('/onboarding/create-profile');
-              } else {
-                setUser(null);
-              }
-            } catch (createError) {
-              console.error('Failed to create user profile:', createError);
-              setUser(null);
-            }
+          if (userProfile && !userProfile.name) {
+            router.push('/onboarding/create-profile');
           }
         } else {
           setUser(null);
@@ -92,15 +71,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, pass: string) => {
+  const signup = async (data: NewCompanyUser) => {
     setLoading(true);
     try {
+      // 1. Create the company
+      const newCompany = await addCompany({
+        name: data.companyName,
+        website: data.companyWebsite || '',
+        size: data.companySize,
+      });
+
+      // 2. Create the Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
-        pass
+        data.email,
+        data.password
       );
-      // Profile creation is now handled by the onAuthStateChanged listener
+      const firebaseUser = userCredential.user;
+
+      // 3. Create the user profile in Firestore
+      const userProfileData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: data.name,
+        designation: data.designation,
+        companyId: newCompany.id,
+        role: 'Super Admin' as const, // First user is always Super Admin
+      };
+
+      await createUserProfile(firebaseUser.uid, userProfileData);
+
+      // Set user state immediately to avoid waiting for onAuthStateChanged
+      setUser({
+        ...userProfileData,
+        emailVerified: firebaseUser.emailVerified,
+      });
+
       return userCredential;
     } catch (error) {
       setLoading(false);
