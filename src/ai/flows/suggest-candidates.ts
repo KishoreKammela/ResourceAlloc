@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -24,7 +25,7 @@ const CandidateSchema = z.object({
     employeeId: z.string().describe("The unique ID of the employee."),
     name: z.string().describe("The full name of the employee."),
     title: z.string().describe("The employee's job title."),
-    justification: z.string().describe("A brief justification for why this employee is a good fit for the project, based on the required skills."),
+    justification: z.string().describe("A brief justification for why this employee is a good fit for the project, based on their skills and role in the team."),
     matchingSkills: z.array(z.string()).describe("A list of the employee's skills that match the project's requirements."),
 });
 
@@ -62,16 +63,15 @@ const prompt = ai.definePrompt({
   input: {schema: SuggestCandidatesInputSchema},
   output: {schema: SuggestCandidatesOutputSchema},
   tools: [getAllEmployeesTool],
-  prompt: `You are an expert HR manager responsible for staffing projects.
+  prompt: `You are an expert HR strategist specializing in building effective project teams.
   
   A new project has the following skill requirements: {{#each requiredSkills}} {{this}} {{/each}}.
 
-  Your task is to identify the best candidates from the company's list of employees. Use the provided tool to get the list of all employees.
+  Your task is to assemble a balanced and effective team from the company's list of employees. Use the provided tool to get the list of all employees.
 
-  For each suggested candidate, provide their employeeId, a brief justification explaining why they are a good fit, based on how their skills match the project's needs.
-  Also, list the specific skills that match the requirements.
-  
-  Return a list of the top 5 most suitable candidates.`,
+  Analyze the list and suggest a team of up to 5 members. Your suggestions should not just be based on individual skill matches, but also on creating a well-rounded team. Consider a good mix of roles (e.g., senior and junior developers, designers, etc.) based on their titles.
+
+  For each suggested candidate, provide their employeeId, name, title, a brief justification explaining their fit within the team structure, and list their skills that match the project requirements.`,
 });
 
 const suggestCandidatesFlow = ai.defineFlow(
