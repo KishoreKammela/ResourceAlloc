@@ -1,12 +1,21 @@
+'use client';
 
+import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { getProjectById } from '@/services/projects.services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Briefcase, Target, FolderKanban, Users2, Pencil } from 'lucide-react';
+import { Calendar, Users, Briefcase, Target, FolderKanban, Users2, Pencil, Bot, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { handleGenerateProjectReport } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import type { GenerateProjectReportOutput } from '@/ai/flows/generate-project-report';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import ReportDisplay from '@/components/app/report-display';
+import type { Project } from '@/types/project';
+
 
 type ProjectDetailPageProps = {
     params: {
@@ -14,12 +23,58 @@ type ProjectDetailPageProps = {
     }
 }
 
-export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
-    const project = await getProjectById(params.id);
+export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+    const [project, setProject] = useState<Project | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isReportLoading, setIsReportLoading] = useState(false);
+    const [report, setReport] = useState<GenerateProjectReportOutput | null>(null);
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+
+    const { toast } = useToast();
+
+    useEffect(() => {
+        async function fetchProject() {
+            setIsLoading(true);
+            const fetchedProject = await getProjectById(params.id);
+            setProject(fetchedProject);
+            setIsLoading(false);
+        }
+        fetchProject();
+    }, [params.id]);
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
     if (!project) {
         notFound();
     }
+
+    const onGenerateReport = async () => {
+        setIsReportLoading(true);
+        setReport(null);
+        try {
+            const result = await handleGenerateProjectReport(project.id);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            setReport(result.report);
+            setIsReportDialogOpen(true);
+            toast({
+                title: 'Report Generated',
+                description: 'The AI-powered project report is ready.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error Generating Report',
+                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+            });
+        } finally {
+            setIsReportLoading(false);
+        }
+    };
+
 
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
@@ -38,6 +93,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                     <p className="text-xl text-muted-foreground">{project.client}</p>
                 </div>
                  <div className="flex gap-2">
+                    <Button onClick={onGenerateReport} disabled={isReportLoading}>
+                        {isReportLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                        Generate AI Report
+                    </Button>
                     <Button asChild>
                         <Link href={`/projects/${project.id}/edit`}>
                            <Pencil className="mr-2 h-4 w-4" />
@@ -118,6 +177,15 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                     </Card>
                 </div>
             </div>
+
+            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-headline">AI-Generated Project Report</DialogTitle>
+                    </DialogHeader>
+                    {report && <ReportDisplay report={report} />}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
