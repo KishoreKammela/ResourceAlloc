@@ -45,14 +45,9 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isPublicPage) {
-    return <PublicLayout>{children}</PublicLayout>;
-  }
-
-  // If no user is logged in, and it's not a public page, redirect to login
-  if (!user) {
-    // This case will be handled by auth context redirecting to login, but as a fallback.
-    return <PublicLayout>{children}</PublicLayout>;
+  // Let the file system routing handle the layout for public pages
+  if (isPublicPage || !user) {
+    return <>{children}</>;
   }
 
   if (pathname.startsWith('/onboarding')) {
