@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Briefcase } from "lucide-react";
+import { Home, Users, Briefcase, UserPlus } from "lucide-react";
 
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Icons } from "@/components/icons";
@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home, tooltip: "Dashboard" },
   { href: "/employees", label: "Employees", icon: Users, tooltip: "Employees" },
+  { href: "/employees/new", label: "Add Employee", icon: UserPlus, tooltip: "Add New Employee" },
   { href: "/projects", label: "Projects", icon: Briefcase, tooltip: "Projects" },
 ];
 

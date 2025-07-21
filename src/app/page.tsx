@@ -1,10 +1,9 @@
-import ProfileCreator from '@/components/app/profile-creator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Dashboard from '@/components/app/dashboard';
 
 export default function Home() {
   return (
-    <div className="container mx-auto">
-      <ProfileCreator />
+    <div className="space-y-8">
+      <Dashboard />
     </div>
   );
 }
