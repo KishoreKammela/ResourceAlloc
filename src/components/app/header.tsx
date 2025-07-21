@@ -5,7 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,14 @@ export function Header() {
               <p className="text-sm font-medium leading-none">Account</p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user?.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+           <DropdownMenuLabel>
+            <div className="flex items-center">
+              <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
+              <p className="text-xs font-medium text-muted-foreground">
+                Role: {user?.role}
               </p>
             </div>
           </DropdownMenuLabel>

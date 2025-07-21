@@ -2,10 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // Allow read and write access for development.
-      // WARNING: This is insecure and should be changed before production.
-      allow read, write: if true;
+    
+    // Helper function to check if a user is logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get the user's role from the 'users' collection
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+    
+    // Helper function to check if the user is an Admin or Super Admin
+    function isAdmin() {
+      return isSignedIn() && (getUserRole(request.auth.uid) == 'Admin' || getUserRole(request.auth.uid) == 'Super Admin');
+    }
+
+    // Rules for 'users' collection
+    match /users/{userId} {
+      // Users can read their own profile to get their role
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // New users can create their own user profile document on signup
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // For now, roles are not updatable by users. This will be an admin feature.
+      allow update: if false; 
+      allow delete: if false;
+    }
+
+    // Rules for 'employees' collection
+    match /employees/{employeeId} {
+      // Admins and Super Admins can do anything
+      allow read, write: if isAdmin();
+      
+      // Employees can read all employee data (for lists, etc.)
+      allow list, get: if isSignedIn();
+    }
+
+    // Rules for 'projects' collection
+    match /projects/{projectId} {
+       // Admins and Super Admins can do anything
+      allow read, write: if isAdmin();
+      
+      // Employees can read all project data
+      allow list, get: if isSignedIn();
     }
   }
 }
