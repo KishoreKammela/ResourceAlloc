@@ -39,16 +39,16 @@ This section covers the creation of detailed employee profiles and a system for 
 
 ### 2.1 Comprehensive Profile System
 
-| Feature                          | Status       | Details & Pending Tasks                                                                                                                                                                            |
-| :------------------------------- | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Expand Employee Data Model**   | `✅ Done`    | Updated `src/types/employee.ts` to include fields for professional summary, location, compensation, etc.                                                                                           |
-| **Update Profile Forms**         | `✅ Done`    | Enhanced `ProfileEditor` components to include inputs for the new fields.                                                                                                                          |
-| **Display New Profile Info**     | `✅ Done`    | Updated the employee detail page to correctly display all the new profile information.                                                                                                             |
-| **Profile Completion Tracking**  | `✅ Done`    | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page.                                                                                    |
-| **Profile Privacy Controls**     | `✅ Done`    | Implemented Firestore security rules to control field visibility and edit permissions based on user roles (e.g., Employee can edit own, Admin can edit all).                                       |
-| **Profile Verification System**  | `⚠️ Partial` | Added a `status` field to the Employee model. A more complex UI workflow for admin approvals of profile changes is scheduled for a later iteration.                                                |
-| **Profile Export Functionality** | `✅ Done`    | Implemented a new API route (`/api/employees/[id]/export`) that uses `jspdf` to generate and download a PDF of an employee's profile. An "Export to PDF" button was added to the UI.               |
-| **Profile Comparison Tools**     | `⏳ Pending` | **Planned**: A significant UI feature that will be addressed after core profile functionality is complete. It will involve a selection mechanism on the main list and a dedicated comparison view. |
+| Feature                          | Status           | Details & Pending Tasks                                                                                                                                                              |
+| :------------------------------- | :--------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Expand Employee Data Model**   | `✅ Done`        | Updated `src/types/employee.ts` to include fields for professional summary, location, compensation, etc.                                                                             |
+| **Update Profile Forms**         | `✅ Done`        | Enhanced `ProfileEditor` components to include inputs for the new fields.                                                                                                            |
+| **Display New Profile Info**     | `✅ Done`        | Updated the employee detail page to correctly display all the new profile information.                                                                                               |
+| **Profile Completion Tracking**  | `✅ Done`        | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page.                                                                      |
+| **Profile Privacy Controls**     | `✅ Done`        | Implemented Firestore security rules to control field visibility and edit permissions based on user roles (e.g., Employee can edit own, Admin can edit all).                         |
+| **Profile Verification System**  | `⚠️ Partial`     | Added a `status` field to the Employee model. A more complex UI workflow for admin approvals of profile changes is scheduled for a later iteration.                                  |
+| **Profile Export Functionality** | `✅ Done`        | Implemented a new API route (`/api/employees/[id]/export`) that uses `jspdf` to generate and download a PDF of an employee's profile. An "Export to PDF" button was added to the UI. |
+| **Profile Comparison Tools**     | `▶️ In Progress` | **Current**: Implementing selection UI on the main employee list. **Next**: Build the dedicated comparison view/page.                                                                |
 
 ### 2.2 Document Management System
 

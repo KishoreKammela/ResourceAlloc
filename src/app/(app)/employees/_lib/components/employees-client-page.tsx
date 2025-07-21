@@ -13,13 +13,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { Employee } from '@/types/employee';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from 'react';
 
 type EmployeesClientPageProps = {
   employees: Employee[];
+  selectedEmployees: string[];
+  onSelectionChange: (selected: string[]) => void;
 };
 
 export default function EmployeesClientPage({
   employees,
+  selectedEmployees,
+  onSelectionChange,
 }: EmployeesClientPageProps) {
   const getAvailabilityBadgeClass = (availability: string) => {
     switch (availability) {
@@ -32,6 +38,22 @@ export default function EmployeesClientPage({
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(employees.map((e) => e.id));
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
+  const handleSelectRow = (employeeId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedEmployees, employeeId]);
+    } else {
+      onSelectionChange(selectedEmployees.filter((id) => id !== employeeId));
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -41,6 +63,16 @@ export default function EmployeesClientPage({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  checked={
+                    employees.length > 0 &&
+                    selectedEmployees.length === employees.length
+                  }
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Skills</TableHead>
@@ -49,7 +81,21 @@ export default function EmployeesClientPage({
           </TableHeader>
           <TableBody>
             {employees.map((employee: Employee) => (
-              <TableRow key={employee.id}>
+              <TableRow
+                key={employee.id}
+                data-state={
+                  selectedEmployees.includes(employee.id) ? 'selected' : ''
+                }
+              >
+                <TableCell>
+                  <Checkbox
+                    onCheckedChange={(checked) =>
+                      handleSelectRow(employee.id, !!checked)
+                    }
+                    checked={selectedEmployees.includes(employee.id)}
+                    aria-label={`Select ${employee.name}`}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
@@ -95,7 +141,7 @@ export default function EmployeesClientPage({
             {employees.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No employees have been created yet.
