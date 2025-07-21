@@ -4,8 +4,10 @@
 import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
-import { addEmployee, updateEmployee, type Employee, UpdatableEmployeeData, deleteEmployee } from './services/employees';
-import { addProject, updateProject, type Project, type UpdatableProjectData } from './services/projects';
+import { addEmployee, updateEmployee, deleteEmployee } from '@/services/employees.services';
+import { addProject, updateProject } from '@/services/projects.services';
+import type { Employee, UpdatableEmployeeData } from '@/types/employee';
+import type { Project, UpdatableProjectData } from '@/types/project';
 
 export async function analyzeResume(resumeDataUri: string) {
   try {
@@ -48,9 +50,9 @@ export async function findCandidates(requiredSkills: string[]) {
     }
 }
 
-export async function createEmployee(employeeData: Omit<Employee, 'id' | 'availability' | 'workMode' | 'title'>) {
+export async function createEmployee(employeeData: Omit<Employee, 'id'>) {
     try {
-        const newEmployee = addEmployee(employeeData);
+        const newEmployee = await addEmployee(employeeData);
         return {
             employee: newEmployee,
             error: null
@@ -67,7 +69,7 @@ export async function createEmployee(employeeData: Omit<Employee, 'id' | 'availa
 
 export async function handleUpdateEmployee(employeeId: string, employeeData: UpdatableEmployeeData) {
     try {
-        const updated = updateEmployee(employeeId, employeeData);
+        const updated = await updateEmployee(employeeId, employeeData);
         if (!updated) {
             throw new Error('Employee not found');
         }
@@ -88,7 +90,7 @@ export async function handleUpdateEmployee(employeeId: string, employeeData: Upd
 
 export async function handleDeleteEmployee(employeeId: string) {
     try {
-        const success = deleteEmployee(employeeId);
+        const success = await deleteEmployee(employeeId);
         if (!success) {
             throw new Error('Employee not found or could not be deleted.');
         }
@@ -107,9 +109,9 @@ export async function handleDeleteEmployee(employeeId: string) {
 }
 
 
-export async function createProject(projectData: Omit<Project, 'id' | 'status' | 'timeline' | 'description'>) {
+export async function createProject(projectData: Omit<Project, 'id'>) {
     try {
-        const newProject = addProject(projectData);
+        const newProject = await addProject(projectData);
         return {
             project: newProject,
             error: null
@@ -126,7 +128,7 @@ export async function createProject(projectData: Omit<Project, 'id' | 'status' |
 
 export async function handleUpdateProject(projectId: string, projectData: UpdatableProjectData) {
     try {
-        const updated = updateProject(projectId, projectData);
+        const updated = await updateProject(projectId, projectData);
         if (!updated) {
             throw new Error('Project not found');
         }

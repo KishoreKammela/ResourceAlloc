@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getEmployeeById } from '@/app/services/employees';
+import { getEmployeeById } from '@/services/employees.services';
 import ProfileEditor from '@/components/app/profile-editor';
 
 type EditEmployeePageProps = {
@@ -8,8 +8,8 @@ type EditEmployeePageProps = {
     }
 }
 
-export default function EditEmployeePage({ params }: EditEmployeePageProps) {
-    const employee = getEmployeeById(params.id);
+export default async function EditEmployeePage({ params }: EditEmployeePageProps) {
+    const employee = await getEmployeeById(params.id);
 
     if (!employee) {
         notFound();

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -16,8 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { handleUpdateProject } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
-import type { Employee } from '@/app/services/employees';
-import type { Project } from '@/app/services/projects';
+import type { Employee } from '@/types/employee';
+import type { Project } from '@/types/project';
 import Link from 'next/link';
 import { Textarea } from '../ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';

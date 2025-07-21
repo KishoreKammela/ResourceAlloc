@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getProjectById } from '@/app/services/projects';
+import { getProjectById } from '@/services/projects.services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,8 @@ type ProjectDetailPageProps = {
     }
 }
 
-export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
-    const project = getProjectById(params.id);
+export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+    const project = await getProjectById(params.id);
 
     if (!project) {
         notFound();

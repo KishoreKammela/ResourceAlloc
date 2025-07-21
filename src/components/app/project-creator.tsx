@@ -18,7 +18,7 @@ import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import type { Employee } from '@/app/services/employees';
+import type { Employee } from '@/types/employee';
 
 
 const projectFormSchema = z.object({
@@ -142,7 +142,10 @@ export default function ProjectCreator() {
             name,
             client,
             requiredSkills,
-            team: selectedCandidates
+            team: selectedCandidates,
+            status: 'Planning',
+            timeline: 'TBD',
+            description: 'No description provided.',
         });
 
         if (result.error) {

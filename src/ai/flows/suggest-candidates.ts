@@ -10,7 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getEmployees, Employee } from '@/app/services/employees';
+import { getEmployees } from '@/services/employees.services';
+import type { Employee } from '@/types/employee';
 
 const SuggestCandidatesInputSchema = z.object({
   requiredSkills: z
@@ -44,7 +45,7 @@ const getAllEmployeesTool = ai.defineTool(
         outputSchema: z.array(z.custom<Employee>()),
     },
     async () => {
-        return getEmployees();
+        return await getEmployees();
     }
 );
 

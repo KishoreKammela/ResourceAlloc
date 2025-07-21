@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getEmployeeById } from '@/app/services/employees';
+import { getEmployeeById } from '@/services/employees.services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,8 @@ type EmployeeProfilePageProps = {
     }
 }
 
-export default function EmployeeProfilePage({ params }: EmployeeProfilePageProps) {
-    const employee = getEmployeeById(params.id);
+export default async function EmployeeProfilePage({ params }: EmployeeProfilePageProps) {
+    const employee = await getEmployeeById(params.id);
 
     if (!employee) {
         notFound();

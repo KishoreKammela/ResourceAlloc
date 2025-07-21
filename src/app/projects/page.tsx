@@ -1,21 +1,16 @@
 
-"use client";
-
-import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { getProjects, type Project } from '@/app/services/projects';
+import { getProjects } from '@/services/projects.services';
+import type { Project } from '@/types/project';
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
 
-  useEffect(() => {
-    setProjects(getProjects());
-  }, []);
+export default async function ProjectsPage() {
+  const projects = await getProjects();
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -57,7 +52,7 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project) => (
+              {projects.map((project: Project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">
                      <Link href={`/projects/${project.id}`} className="hover:underline text-primary">

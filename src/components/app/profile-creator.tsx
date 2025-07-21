@@ -109,7 +109,14 @@ export default function ProfileCreator() {
     setIsSaving(true);
     try {
         const { name, email } = form.getValues();
-        const result = await createEmployee({ name, email, skills: finalSkills });
+        const result = await createEmployee({ 
+            name, 
+            email, 
+            skills: finalSkills,
+            title: "New Hire",
+            availability: 'Available',
+            workMode: 'Remote',
+        });
 
         if (result.error) {
             throw new Error(result.error);

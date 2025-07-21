@@ -1,8 +1,8 @@
 
 import { notFound } from 'next/navigation';
-import { getProjectById } from '@/app/services/projects';
+import { getProjectById } from '@/services/projects.services';
 import ProjectEditor from '@/components/app/project-editor';
-import { getEmployees } from '@/app/services/employees';
+import { getEmployees } from '@/services/employees.services';
 
 type EditProjectPageProps = {
     params: {
@@ -10,9 +10,9 @@ type EditProjectPageProps = {
     }
 }
 
-export default function EditProjectPage({ params }: EditProjectPageProps) {
-    const project = getProjectById(params.id);
-    const allEmployees = getEmployees();
+export default async function EditProjectPage({ params }: EditProjectPageProps) {
+    const project = await getProjectById(params.id);
+    const allEmployees = await getEmployees();
 
     if (!project) {
         notFound();

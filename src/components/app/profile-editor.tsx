@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { handleUpdateEmployee, handleDeleteEmployee } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
-import type { Employee } from '@/app/services/employees';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import Link from 'next/link';
 import {
@@ -29,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import type { Employee } from '@/types/employee';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
