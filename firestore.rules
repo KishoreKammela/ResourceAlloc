@@ -1,23 +1,28 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read their own profile, Admins can read any.
-    match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin']);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == userId;
+    // Allow anyone to create a company during signup
+    match /companies/{companyId} {
+      allow create: if true;
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Admin';
     }
 
-    // Employees can manage their own profile. Admins can manage any.
+    // Users can only read/write their own user profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow Super Admin to read user data for their company
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Admin' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == resource.data.companyId;
+    }
+
+    // Admins/Super Admins can manage employees in their own company
     match /employees/{employeeId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (request.resource.data.uid == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin']);
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
     }
-
-    // Authenticated users can read projects. Admins can manage them.
+    
+    // Admins/Super Admins can manage projects in their own company
     match /projects/{projectId} {
       allow read: if request.auth != null;
       allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
