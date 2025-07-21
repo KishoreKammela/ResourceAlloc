@@ -19,7 +19,7 @@ const FeatureCard = ({
     <div className="mb-4 rounded-full bg-primary/10 p-3 text-primary">
       {icon}
     </div>
-    <h3 className="mb-2 font-headline text-xl font-bold">{title}</h3>
+    <h3 className="font-headline text-xl font-bold">{title}</h3>
     <p className="text-muted-foreground">{description}</p>
   </div>
 );
