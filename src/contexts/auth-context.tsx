@@ -12,6 +12,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendEmailVerification,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
@@ -26,6 +27,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<any>;
   signup: (data: NewCompanyUser) => Promise<any>;
   logout: () => Promise<any>;
+  sendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,10 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (firebaseUser) {
           const userProfile = await getUserProfile(firebaseUser.uid);
-          setUser(userProfile);
+          if (userProfile) {
+            // Combine firestore profile with live auth properties
+            setUser({
+              ...userProfile,
+              emailVerified: firebaseUser.emailVerified,
+            });
 
-          if (userProfile && !userProfile.name) {
-            router.push('/onboarding/create-profile');
+            if (!userProfile.name) {
+              if (pathname !== '/onboarding/create-profile') {
+                router.push('/onboarding/create-profile');
+              }
+            }
+          } else {
+            // If there's a firebase user but no profile, something is wrong.
+            // It might be a partially deleted account. Log them out.
+            setUser(null);
           }
         } else {
           setUser(null);
@@ -89,7 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       const firebaseUser = userCredential.user;
 
-      // 3. Create the user profile in Firestore
+      // 3. Send verification email
+      await sendEmailVerification(firebaseUser);
+
+      // 4. Create the user profile in Firestore
       const userProfileData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -121,12 +138,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
+  const sendVerificationEmail = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
+    } else {
+      throw new Error('Not authenticated. Cannot send verification email.');
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     signup,
     logout,
+    sendVerificationEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

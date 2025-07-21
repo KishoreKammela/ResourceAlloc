@@ -31,19 +31,36 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
     pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup');
-  const isAppPath = !isPublicPath;
+
+  const isVerifyEmailPath = pathname.startsWith('/verify-email');
+  const isAppPath = !isPublicPath && !isVerifyEmailPath;
 
   useEffect(() => {
     if (loading) return;
 
-    if (user && isPublicPath) {
-      router.push('/dashboard');
+    if (user) {
+      if (!user.emailVerified && !isVerifyEmailPath) {
+        // If user is not verified and not on the verification page, redirect them there.
+        router.push('/verify-email');
+      } else if (user.emailVerified && (isPublicPath || isVerifyEmailPath)) {
+        // If user is verified and on a public/verification page, redirect to dashboard.
+        router.push('/dashboard');
+      }
     } else if (!user && isAppPath) {
+      // If no user and trying to access an app path, redirect to login.
       router.push('/login');
     }
-  }, [user, loading, isPublicPath, isAppPath, pathname, router]);
+  }, [
+    user,
+    loading,
+    isPublicPath,
+    isAppPath,
+    isVerifyEmailPath,
+    pathname,
+    router,
+  ]);
 
-  if (loading || (user && isPublicPath) || (!user && isAppPath)) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -51,6 +68,18 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Determine which layout to render
+  if (!user) {
+    // For logged-out users, show public layout for public pages
+    return <>{children}</>;
+  }
+
+  if (user && !user.emailVerified) {
+    // For unverified users, only show the verification page
+    return isVerifyEmailPath ? <>{children}</> : null;
+  }
+
+  // For logged-in, verified users, show the app layout
   return <>{children}</>;
 }
 
