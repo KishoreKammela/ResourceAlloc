@@ -21,6 +21,7 @@ const SuggestCandidatesInputSchema = z.object({
 export type SuggestCandidatesInput = z.infer<typeof SuggestCandidatesInputSchema>;
 
 const CandidateSchema = z.object({
+    employeeId: z.string().describe("The unique ID of the employee."),
     name: z.string().describe("The full name of the employee."),
     title: z.string().describe("The employee's job title."),
     justification: z.string().describe("A brief justification for why this employee is a good fit for the project, based on the required skills."),
@@ -67,7 +68,7 @@ const prompt = ai.definePrompt({
 
   Your task is to identify the best candidates from the company's list of employees. Use the provided tool to get the list of all employees.
 
-  For each suggested candidate, provide a brief justification explaining why they are a good fit, based on how their skills match the project's needs.
+  For each suggested candidate, provide their employeeId, a brief justification explaining why they are a good fit, based on how their skills match the project's needs.
   Also, list the specific skills that match the requirements.
   
   Return a list of the top 5 most suitable candidates.`,

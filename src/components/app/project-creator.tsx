@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,7 @@ import { Badge } from '../ui/badge';
 import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import type { Employee } from '@/types/employee';
+import { getEmployees } from '@/services/employees.services';
 
 
 const projectFormSchema = z.object({
@@ -28,7 +29,7 @@ const projectFormSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
-type Candidate = SuggestCandidatesOutput['candidates'][0] & { id?: string };
+type Candidate = SuggestCandidatesOutput['candidates'][0];
 type CandidatesResult = { candidates: Candidate[] };
 
 
@@ -37,10 +38,19 @@ export default function ProjectCreator() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [candidatesResult, setCandidatesResult] = useState<CandidatesResult | null>(null);
   const [requiredSkills, setRequiredSkills] = useState<string[]>(['React', 'Node.js', 'TypeScript']);
   const [newSkill, setNewSkill] = useState('');
-  const [selectedCandidates, setSelectedCandidates] = useState<Employee[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Employee[]>([]);
+
+  useEffect(() => {
+    async function fetchEmployees() {
+      const employees = await getEmployees();
+      setAllEmployees(employees);
+    }
+    fetchEmployees();
+  }, []);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -50,7 +60,7 @@ export default function ProjectCreator() {
   const handleFindCandidates: SubmitHandler<ProjectFormValues> = async (data) => {
     setIsLoading(true);
     setCandidatesResult(null);
-    setSelectedCandidates([]);
+    setSelectedTeam([]);
 
     if (requiredSkills.length === 0) {
         toast({
@@ -108,28 +118,22 @@ export default function ProjectCreator() {
     form.reset();
     setCandidatesResult(null);
     setRequiredSkills(['React', 'Node.js', 'TypeScript']);
-    setSelectedCandidates([]);
+    setSelectedTeam([]);
     setIsLoading(false);
     setIsSaving(false);
   }
 
   const toggleCandidateSelection = (candidate: Candidate) => {
-    setSelectedCandidates(prev => {
-        const isSelected = prev.some(c => c.name === candidate.name);
+    setSelectedTeam(prev => {
+        const isSelected = prev.some(c => c.id === candidate.employeeId);
         if (isSelected) {
-            return prev.filter(c => c.name !== candidate.name);
+            return prev.filter(c => c.id !== candidate.employeeId);
         } else {
-            // This is a bit of a hack since the AI doesn't return the full employee object.
-            // In a real app, you'd fetch the full employee record.
-            const employeeData: Employee = {
-                id: candidate.name, // Assuming name is unique for now
-                name: candidate.name,
-                title: candidate.title,
-                skills: candidate.matchingSkills,
-                availability: 'On Project',
-                workMode: 'Remote'
-            };
-            return [...prev, employeeData];
+            const employeeData = allEmployees.find(e => e.id === candidate.employeeId);
+            if (employeeData) {
+              return [...prev, employeeData];
+            }
+            return prev;
         }
     })
   }
@@ -142,7 +146,7 @@ export default function ProjectCreator() {
             name,
             client,
             requiredSkills,
-            team: selectedCandidates,
+            team: selectedTeam,
             status: 'Planning',
             timeline: 'TBD',
             description: 'No description provided.',
@@ -261,7 +265,7 @@ export default function ProjectCreator() {
               {candidatesResult.candidates.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {candidatesResult.candidates.map((candidate, index) => {
-                        const isSelected = selectedCandidates.some(c => c.name === candidate.name);
+                        const isSelected = selectedTeam.some(c => c.id === candidate.employeeId);
                         return (
                             <Card key={index} className={`flex flex-col ${isSelected ? 'border-primary' : ''}`}>
                                 <CardHeader className="flex flex-row items-center gap-4">
@@ -307,7 +311,7 @@ export default function ProjectCreator() {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
-              <Button onClick={handleSaveProject} disabled={isSaving || selectedCandidates.length === 0}>
+              <Button onClick={handleSaveProject} disabled={isSaving || selectedTeam.length === 0}>
                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                 Create Project & Assign Team
               </Button>
