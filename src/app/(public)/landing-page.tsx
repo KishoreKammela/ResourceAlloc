@@ -228,7 +228,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <p className="text-lg italic text-foreground">
-                    "{testimonial.quote}"
+                    &quot;{testimonial.quote}&quot;
                   </p>
                   <div className="mt-6 flex items-center">
                     <Image

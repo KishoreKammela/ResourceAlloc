@@ -155,7 +155,7 @@ export default function SkillGapAnalyzer({
                     Summary
                   </h3>
                   <p className="italic text-muted-foreground">
-                    "{analysisResult.analysisSummary}"
+                    &quot;{analysisResult.analysisSummary}&quot;
                   </p>
                 </div>
 

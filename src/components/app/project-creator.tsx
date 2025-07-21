@@ -196,7 +196,7 @@ export default function ProjectCreator() {
 
       toast({
         title: 'Project Created',
-        description: `Project "${result.project?.name}" has been successfully created.`,
+        description: `Project "${result.project?.name}&quot; has been successfully created.`,
       });
 
       router.push('/projects');
@@ -371,7 +371,7 @@ export default function ProjectCreator() {
                               Justification
                             </h4>
                             <p className="text-sm italic text-muted-foreground">
-                              "{candidate.justification}"
+                            &quot;{candidate.justification}&quot;
                             </p>
                           </div>
                           <div>

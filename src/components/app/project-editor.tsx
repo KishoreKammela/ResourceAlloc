@@ -117,7 +117,7 @@ export default function ProjectEditor({
 
       toast({
         title: 'Project Updated',
-        description: `The project "${result.project?.name}" has been successfully updated.`,
+        description: `The project "${result.project?.name}&quot; has been successfully updated.`,
       });
 
       router.push(`/projects/${project.id}`);
@@ -145,7 +145,7 @@ export default function ProjectEditor({
       }
       toast({
         title: 'Project Deleted',
-        description: `The project "${project.name}" has been deleted.`,
+        description: `The project "${project.name}&quot; has been deleted.`,
       });
       router.push('/projects');
       router.refresh();
@@ -203,7 +203,7 @@ export default function ProjectEditor({
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Edit Project</CardTitle>
         <CardDescription>
-          Update the details for "{project.name}".
+          Update the details for &quot;{project.name}&quot;.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -431,7 +431,7 @@ export default function ProjectEditor({
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently delete
-                      the project "{project.name}".
+                      the project &quot;{project.name}&quot;.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
