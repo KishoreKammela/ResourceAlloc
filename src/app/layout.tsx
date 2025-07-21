@@ -17,6 +17,19 @@ import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import PublicLayout from './(public)/layout';
+import { Inter, Space_Grotesk } from 'next/font/google';
+
+const fontInter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const fontSpaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,13 +46,18 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If no user is logged in, or if it's a public page or onboarding, show the public layout.
-  if (!user || isPublicPage || pathname.startsWith('/onboarding')) {
-    // For onboarding, it doesn't use the public layout, but this condition works
-    if (pathname.startsWith('/onboarding')) {
-      return <>{children}</>;
-    }
+  if (isPublicPage) {
     return <PublicLayout>{children}</PublicLayout>;
+  }
+
+  // If no user is logged in, and it's not a public page, redirect to login
+  if (!user) {
+    // This case will be handled by auth context redirecting to login, but as a fallback.
+    return <PublicLayout>{children}</PublicLayout>;
+  }
+
+  if (pathname.startsWith('/onboarding')) {
+    return <>{children}</>;
   }
 
   // If the user is logged in and on a private page, show the app layout with sidebar.
@@ -66,26 +84,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${fontInter.variable} ${fontSpaceGrotesk.variable}`}
+    >
       <head>
         <title>ResourceAlloc</title>
         <meta
           name="description"
           content="AI-Powered Resource Allocation and Management"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
-          rel="stylesheet"
         />
       </head>
       <body className={cn('font-body antialiased', 'bg-background')}>
