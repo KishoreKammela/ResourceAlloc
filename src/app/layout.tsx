@@ -9,8 +9,6 @@ import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { useEffect } from 'react';
-import PublicLayout from '@/app/(public)/layout';
-import AppLayout from '@/app/(app)/layout';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -24,40 +22,40 @@ const fontSpaceGrotesk = Space_Grotesk({
   display: 'swap',
 });
 
-function AuthRedirect({ children }: { children: React.ReactNode }) {
+function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicPath =
-    pathname === '/' ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/signup');
-  const isVerifyEmailPath = pathname.startsWith('/verify-email');
-  const isOnboardingPath = pathname.startsWith('/onboarding');
-  const isAppPath = !isPublicPath && !isVerifyEmailPath && !isOnboardingPath;
-
   useEffect(() => {
     if (loading) return;
+
+    const isAuthPage =
+      pathname.startsWith('/login') || pathname.startsWith('/signup');
+    const isVerifyEmailPath = pathname.startsWith('/verify-email');
+    const isOnboardingPath = pathname.startsWith('/onboarding');
+    const isAppPath = !isAuthPage && !isVerifyEmailPath && !isOnboardingPath;
 
     if (user) {
       if (!user.emailVerified && !isVerifyEmailPath) {
         router.push('/verify-email');
-      } else if (user.emailVerified && (isPublicPath || isVerifyEmailPath)) {
+      } else if (user.emailVerified && !user.onboardingCompleted) {
+        if (!isOnboardingPath) {
+          router.push('/onboarding/create-profile');
+        }
+      } else if (
+        user.emailVerified &&
+        user.onboardingCompleted &&
+        (isAuthPage || isVerifyEmailPath)
+      ) {
         router.push('/dashboard');
       }
-    } else if (!user && isAppPath) {
-      router.push('/login');
+    } else {
+      if (isAppPath) {
+        router.push('/login');
+      }
     }
-  }, [
-    user,
-    loading,
-    isPublicPath,
-    isAppPath,
-    isVerifyEmailPath,
-    pathname,
-    router,
-  ]);
+  }, [user, loading, pathname, router]);
 
   if (loading) {
     return (
@@ -67,28 +65,7 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Determine which layout to render
-  if (!user && isPublicPath) {
-    return <PublicLayout>{children}</PublicLayout>;
-  }
-
-  if (user && !user.emailVerified) {
-    return isVerifyEmailPath ? <PublicLayout>{children}</PublicLayout> : null;
-  }
-  if (user && isOnboardingPath) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/40">
-        {children}
-      </div>
-    );
-  }
-
-  if (user && user.emailVerified && !isOnboardingPath) {
-    return <AppLayout>{children}</AppLayout>;
-  }
-
-  // Fallback for logged-out users on non-public pages (e.g. verify, onboarding)
-  return <PublicLayout>{children}</PublicLayout>;
+  return <>{children}</>;
 }
 
 export default function RootLayout({
@@ -112,7 +89,7 @@ export default function RootLayout({
       <body className={cn('font-body antialiased', 'bg-background')}>
         <AuthProvider>
           <MotionConfig reducedMotion="user">
-            <AuthRedirect>{children}</AuthRedirect>
+            <RootLayoutContent>{children}</RootLayoutContent>
           </MotionConfig>
         </AuthProvider>
         <Toaster />

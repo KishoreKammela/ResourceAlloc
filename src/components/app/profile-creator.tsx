@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { useAuth } from '@/contexts/auth-context';
+import { updateUserProfile } from '@/services/users.services';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -75,9 +76,9 @@ export default function ProfileCreator({
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: '',
+      name: user?.name || '',
       email: user?.email || '',
-      title: '',
+      title: user?.designation || '',
       availability: 'Available',
       workMode: 'Remote',
     },
@@ -116,6 +117,11 @@ export default function ProfileCreator({
 
       if (result.error) {
         throw new Error(result.error);
+      }
+
+      // If this is part of onboarding, update the user profile to mark it as complete
+      if (isOnboarding) {
+        await updateUserProfile(user.uid, { onboardingCompleted: true });
       }
 
       toast({
@@ -164,7 +170,11 @@ export default function ProfileCreator({
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Jane Doe" {...field} />
+                      <Input
+                        placeholder="e.g. Jane Doe"
+                        {...field}
+                        disabled={isOnboarding}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

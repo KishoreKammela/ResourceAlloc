@@ -13,6 +13,7 @@ export interface AppUser {
   name?: string;
   designation?: 'CEO' | 'Hiring Manager' | string;
   companyId?: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface NewCompanyUser {

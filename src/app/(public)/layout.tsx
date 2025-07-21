@@ -3,7 +3,7 @@
 import { PublicFooter } from './_components/footer';
 import { PublicNavbar } from './_components/navbar';
 
-export default function PublicPagesLayout({
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;

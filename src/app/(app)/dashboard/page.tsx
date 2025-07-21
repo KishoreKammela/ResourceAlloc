@@ -8,6 +8,9 @@ import { getEmployees } from '@/services/employees.services';
 import { getProjects } from '@/services/projects.services';
 import type { Employee } from '@/types/employee';
 import type { Project } from '@/types/project';
+import { useAuth } from '@/contexts/auth-context';
+import WelcomeModal from '@/components/app/welcome-modal';
+import { updateUserProfile } from '@/services/users.services';
 
 type SkillsData = {
   name: string;
@@ -21,10 +24,12 @@ type Stats = {
 };
 
 export default function DashboardPage() {
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats[]>([]);
   const [skillsData, setSkillsData] = useState<SkillsData[]>([]);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -77,11 +82,23 @@ export default function DashboardPage() {
 
       setRecentProjects(projects.slice(0, 4));
 
+      if (user && !user.onboardingCompleted) {
+        setShowWelcomeModal(true);
+      }
+
       setLoading(false);
     }
 
     fetchData();
-  }, []);
+  }, [user]);
+
+  const handleWelcomeComplete = async () => {
+    if (user) {
+      await updateUserProfile(user.uid, { onboardingCompleted: true });
+      await refreshUser(); // Refresh user state in context
+      setShowWelcomeModal(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,6 +110,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={handleWelcomeComplete}
+        userName={user?.name || 'there'}
+      />
       <Dashboard
         stats={stats}
         skillsData={skillsData}

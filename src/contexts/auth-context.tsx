@@ -13,7 +13,13 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendEmailVerification,
+  getMultiFactorResolver,
+  PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
   type User as FirebaseUser,
+  type MultiFactorResolver,
+  type AuthError,
+  MultiFactorError,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { createUserProfile, getUserProfile } from '@/services/users.services';
@@ -21,14 +27,17 @@ import type { AppUser, NewCompanyUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
 import { addCompany } from '@/services/companies.services';
 import { addEmployee, getEmployeeByUid } from '@/services/employees.services';
+import { addAuditLog } from '@/services/audit.services';
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<any>;
+  login: (email: string, pass: string) => Promise<{ mfa: boolean } | undefined>;
   signup: (data: NewCompanyUser) => Promise<any>;
   logout: () => Promise<any>;
   sendVerificationEmail: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  mfaResolver: ((verificationCode: string) => Promise<void>) | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,48 +45,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaResolver, setMfaResolver] =
+    useState<AuthContextType['mfaResolver']>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  const fetchUser = async (firebaseUser: FirebaseUser | null) => {
+    if (firebaseUser) {
+      const userProfile = await getUserProfile(firebaseUser.uid);
+      if (userProfile) {
+        const fullUser: AppUser = {
+          ...userProfile,
+          uid: firebaseUser.uid, // Ensure UID is always from the live auth object
+          emailVerified: firebaseUser.emailVerified,
+        };
+        setUser(fullUser);
+      } else {
+        await signOut(auth);
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-      try {
-        if (firebaseUser) {
-          const userProfile = await getUserProfile(firebaseUser.uid);
-          if (userProfile) {
-            // Combine firestore profile with live auth properties
-            setUser({
-              ...userProfile,
-              emailVerified: firebaseUser.emailVerified,
-            });
-
-            // Check if user has an associated employee profile.
-            // This is part of the onboarding check.
-            const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
-            if (!employeeProfile) {
-              if (pathname !== '/onboarding/create-profile') {
-                router.push('/onboarding/create-profile');
-              }
-            }
-          } else {
-            // If there's a firebase user but no profile, something is wrong.
-            // It might be a partially deleted account. Log them out.
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Auth state change error:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+      await fetchUser(firebaseUser);
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      setLoading(true);
+      await auth.currentUser.reload();
+      await fetchUser(auth.currentUser);
+      setLoading(false);
+    }
+  };
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
@@ -85,6 +95,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (error) {
       setLoading(false);
+      const authError = error as AuthError;
+      if (authError.code === 'auth/multi-factor-auth-required') {
+        const resolver = getMultiFactorResolver(
+          auth,
+          error as MultiFactorError
+        );
+        const mfaContinuation = async (verificationCode: string) => {
+          setLoading(true);
+          try {
+            const phoneAuthCredential = PhoneAuthProvider.credential(
+              resolver.hints[0].uid,
+              verificationCode
+            );
+            const multiFactorAssertion =
+              PhoneMultiFactorGenerator.assertion(phoneAuthCredential);
+            await resolver.resolveSignIn(multiFactorAssertion);
+          } finally {
+            setLoading(false);
+          }
+        };
+        setMfaResolver(() => mfaContinuation);
+        return { mfa: true };
+      }
       throw error;
     }
   };
@@ -92,14 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (data: NewCompanyUser) => {
     setLoading(true);
     try {
-      // 1. Create the company
       const newCompany = await addCompany({
         name: data.companyName,
         website: data.companyWebsite || '',
         size: data.companySize,
       });
 
-      // 2. Create the Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,
@@ -107,33 +138,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       const firebaseUser = userCredential.user;
 
-      // 3. Send verification email
       await sendEmailVerification(firebaseUser);
 
-      // 4. Create the user profile in Firestore
-      const userProfileData = {
+      const userProfileData: Omit<AppUser, 'emailVerified'> = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         name: data.name,
         designation: data.designation,
         companyId: newCompany.id,
-        role: 'Super Admin' as const, // First user is always Super Admin
+        role: 'Super Admin' as const,
+        onboardingCompleted: false,
       };
 
       await createUserProfile(firebaseUser.uid, userProfileData);
 
-      // 5. Create a corresponding employee profile
       await addEmployee({
         uid: firebaseUser.uid,
         name: data.name,
         title: data.designation,
-        email: data.email,
+        email: firebaseUser.email ?? undefined,
         skills: [],
         availability: 'Available',
-        workMode: 'Hybrid', // Default value
+        workMode: 'Remote',
       });
 
-      // Set user state immediately to avoid waiting for onAuthStateChanged
+      await addAuditLog({
+        event: 'user_created',
+        userId: firebaseUser.uid,
+        details: `New user registered: ${firebaseUser.email}`,
+      });
+
       setUser({
         ...userProfileData,
         emailVerified: firebaseUser.emailVerified,
@@ -148,8 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setLoading(true);
+    if (user) {
+      await addAuditLog({
+        event: 'user_logout',
+        userId: user.uid,
+        details: `User logged out: ${user.email}`,
+      });
+    }
     await signOut(auth);
     setUser(null);
+    setMfaResolver(null);
     setLoading(false);
   };
 
@@ -168,6 +210,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signup,
     logout,
     sendVerificationEmail,
+    refreshUser,
+    mfaResolver,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
