@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -61,9 +62,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             // This could happen if user exists in Auth but not in Firestore.
             // Create the profile and then set the user state.
-            await createUserProfile(firebaseUser.uid, firebaseUser.email);
-            const newUserProfile = await getUserProfile(firebaseUser.uid);
-            setUser(newUserProfile);
+            try {
+              await createUserProfile(firebaseUser.uid, firebaseUser.email);
+              const newUserProfile = await getUserProfile(firebaseUser.uid);
+              setUser(newUserProfile);
+            } catch (createError) {
+              console.error('Failed to create user profile:', createError);
+              setUser(null);
+            }
           }
         } else {
           setUser(null);
@@ -76,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Auth state change error:', error);
-        // Ensure we don't get stuck in loading state on error
         setUser(null);
       } finally {
         setLoading(false);
@@ -90,31 +95,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle the rest, including setting loading to false
     } catch (error) {
-      setLoading(false); // Explicitly set loading to false on login failure
-      throw error; // Re-throw the error so the form can catch it
+      setLoading(false);
+      throw error;
     }
   };
 
   const signup = async (email: string, pass: string) => {
     setLoading(true);
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      pass
-    );
-    await createUserProfile(
-      userCredential.user.uid,
-      userCredential.user.email
-    );
-    // onAuthStateChanged will handle the rest
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+      await createUserProfile(
+        userCredential.user.uid,
+        userCredential.user.email
+      );
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const logout = async () => {
     setLoading(true);
     await signOut(auth);
-    // onAuthStateChanged will handle redirecting to /login
+    setUser(null);
+    setLoading(false);
+    router.push('/login');
   };
 
   const value = {
@@ -125,18 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="flex h-screen items-center justify-center">
-          {/* You can replace this with a more sophisticated loading spinner */}
-          <p>Loading...</p>
-        </div>
-      ) : (
-        children
-      )}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
