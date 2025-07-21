@@ -1,10 +1,11 @@
+
 'use server';
 
 import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
 import { addEmployee, updateEmployee, type Employee, UpdatableEmployeeData } from './services/employees';
-import { addProject, type Project } from './services/projects';
+import { addProject, updateProject, type Project, type UpdatableProjectData } from './services/projects';
 
 export async function analyzeResume(resumeDataUri: string) {
   try {
@@ -97,6 +98,26 @@ export async function createProject(projectData: Omit<Project, 'id' | 'status' |
         return {
             project: null,
             error: `Failed to create project: ${error}`
+        }
+    }
+}
+
+export async function handleUpdateProject(projectId: string, projectData: UpdatableProjectData) {
+    try {
+        const updated = updateProject(projectId, projectData);
+        if (!updated) {
+            throw new Error('Project not found');
+        }
+        return {
+            project: updated,
+            error: null
+        }
+    } catch(e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            project: null,
+            error: `Failed to update project: ${error}`
         }
     }
 }

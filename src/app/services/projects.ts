@@ -15,6 +15,8 @@ export type Project = {
     team: Employee[];
 };
 
+export type UpdatableProjectData = Partial<Omit<Project, 'id'>>;
+
 const mockProjects: Project[] = [
   {
     id: "1",
@@ -78,4 +80,18 @@ export function addProject(projectData: Omit<Project, 'id' | 'status' | 'timelin
     };
     mockProjects.push(newProject);
     return newProject;
+}
+
+
+export function updateProject(id: string, data: UpdatableProjectData): Project | undefined {
+    const projectIndex = mockProjects.findIndex(p => p.id === id);
+    if (projectIndex === -1) {
+        return undefined;
+    }
+    const updatedProject = {
+        ...mockProjects[projectIndex],
+        ...data,
+    };
+    mockProjects[projectIndex] = updatedProject;
+    return updatedProject;
 }

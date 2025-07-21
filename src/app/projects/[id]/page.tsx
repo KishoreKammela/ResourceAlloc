@@ -4,7 +4,7 @@ import { getProjectById } from '@/app/services/projects';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Briefcase, Target, FolderKanban, Users2 } from 'lucide-react';
+import { Calendar, Users, Briefcase, Target, FolderKanban, Users2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -37,11 +37,19 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                     <h1 className="text-3xl font-headline font-bold">{project.name}</h1>
                     <p className="text-xl text-muted-foreground">{project.client}</p>
                 </div>
-                 <Button asChild variant="outline">
-                    <Link href="/projects">
-                        Back to Projects
-                    </Link>
-                </Button>
+                 <div className="flex gap-2">
+                    <Button asChild>
+                        <Link href={`/projects/${project.id}/edit`}>
+                           <Pencil className="mr-2 h-4 w-4" />
+                           Edit Project
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href="/projects">
+                            Back to Projects
+                        </Link>
+                    </Button>
+                </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
