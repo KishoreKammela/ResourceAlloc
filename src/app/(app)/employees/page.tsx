@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { UserPlus, Users, GitCompareArrows } from 'lucide-react';
+import { UserPlus, GitCompareArrows } from 'lucide-react';
 import Link from 'next/link';
 import { getEmployees } from '@/services/employees.services';
 import EmployeesClientPage from './_lib/components/employees-client-page';
@@ -10,10 +10,11 @@ import { useEffect, useState } from 'react';
 import type { Employee } from '@/types/employee';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function EmployeesPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -30,12 +31,10 @@ export default function EmployeesPage() {
   const canAddEmployee = user?.role === 'Admin' || user?.role === 'Super Admin';
 
   const handleCompare = () => {
-    // For now, just show a toast with the selected IDs.
-    // In the next step, this will navigate to a comparison page.
-    toast({
-      title: 'Comparison Feature',
-      description: `Selected employee IDs: ${selectedEmployees.join(', ')}`,
-    });
+    if (selectedEmployees.length < 2) return;
+    const params = new URLSearchParams();
+    params.set('ids', selectedEmployees.join(','));
+    router.push(`/employees/compare?${params.toString()}`);
   };
 
   if (loading) {
