@@ -141,7 +141,7 @@ export default function EmployeeProfilePage({
             <CardHeader>
               <CardTitle className="text-lg">Skills</CardTitle>
               <CardDescription>
-                A comprehensive list of the employee's professional skills.
+                A comprehensive list of the employee&apos;s professional skills.
               </CardDescription>
             </CardHeader>
             <CardContent>
