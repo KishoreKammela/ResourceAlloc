@@ -1,5 +1,7 @@
+'use client';
+
 import { db } from '@/lib/firebase/config';
-import type { AppUser, UserRole } from '@/types/user';
+import type { AppUser } from '@/types/user';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export async function createUserProfile(
@@ -14,8 +16,6 @@ export async function getUserProfile(uid: string): Promise<AppUser | null> {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    // We explicitly cast here after checking existence.
-    // The emailVerified property will be added in the auth context.
     return docSnap.data() as AppUser;
   } else {
     return null;
