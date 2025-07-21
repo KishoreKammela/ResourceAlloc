@@ -13,6 +13,9 @@ export type Employee = {
     email?: string;
 };
 
+export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;
+
+
 const mockEmployees: Employee[] = [
   {
     id: "1",
@@ -98,4 +101,17 @@ export function addEmployee(employeeData: Omit<Employee, 'id' | 'availability' |
     };
     mockEmployees.push(newEmployee);
     return newEmployee;
+}
+
+export function updateEmployee(id: string, data: UpdatableEmployeeData): Employee | undefined {
+    const employeeIndex = mockEmployees.findIndex(emp => emp.id === id);
+    if (employeeIndex === -1) {
+        return undefined;
+    }
+    const updatedEmployee = {
+        ...mockEmployees[employeeIndex],
+        ...data,
+    };
+    mockEmployees[employeeIndex] = updatedEmployee;
+    return updatedEmployee;
 }
