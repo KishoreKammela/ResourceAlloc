@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -42,7 +43,7 @@ export function Nav() {
                         <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
                             asChild
-                            isActive={pathname === item.href}
+                            isActive={pathname.startsWith(item.href)}
                             className="justify-start"
                             tooltip={item.tooltip}
                         >
