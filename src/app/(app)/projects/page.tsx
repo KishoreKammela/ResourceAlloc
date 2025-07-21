@@ -11,12 +11,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { getProjects } from '@/services/projects.services';
 import type { Project } from '@/types/project';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
+import EmptyState from '@/components/app/empty-state';
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -75,50 +76,53 @@ export default function ProjectsPage() {
           <CardTitle>Project Portfolio</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project Name</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Timeline</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((project: Project) => (
-                <TableRow key={project.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {project.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{project.client}</TableCell>
-                  <TableCell>{project.timeline}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={getStatusBadgeClass(project.status)}
-                    >
-                      {project.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {projects.length === 0 && (
+          {projects.length > 0 ? (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    No projects have been created yet.
-                  </TableCell>
+                  <TableHead>Project Name</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Timeline</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {projects.map((project: Project) => (
+                  <TableRow key={project.id}>
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        {project.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{project.client}</TableCell>
+                    <TableCell>{project.timeline}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={getStatusBadgeClass(project.status)}
+                      >
+                        {project.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState
+              icon={<Briefcase className="h-8 w-8" />}
+              title="No Projects Created"
+              description="You haven't created any projects yet. Start by creating a project and assigning talent to it."
+              action={
+                canCreateProject
+                  ? { label: 'Create Project', href: '/projects/new' }
+                  : undefined
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>
