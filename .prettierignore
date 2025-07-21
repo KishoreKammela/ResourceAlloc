@@ -1,0 +1,21 @@
+
+# build output
+.next/
+out/
+build/
+dist/
+
+# dependencies
+node_modules/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# misc
+*.lock
+.env
+.env.local
