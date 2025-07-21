@@ -1,27 +1,22 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { initAdmin } from '@/lib/firebase/admin-config';
-
-async function verifySessionCookie(sessionCookie: string | undefined) {
-  if (!sessionCookie) return null;
-  
-  try {
-    await initAdmin();
-    return await getAuth().verifySessionCookie(sessionCookie, true);
-  } catch (error) {
-    // Session cookie is invalid.
-    return null;
-  }
-}
 
 export async function middleware(request: NextRequest) {
-  const sessionCookie = request.cookies.get('firebase-session')?.value;
-  const decodedToken = await verifySessionCookie(sessionCookie);
-  const isAuthenticated = !!decodedToken;
-  const isEmailVerified = decodedToken?.email_verified || false;
-
   const { pathname } = request.nextUrl;
+
+  const sessionCookie = request.cookies.get('firebase-session')?.value;
+  
+  // Create an absolute URL for the API endpoint
+  const sessionApiUrl = new URL('/api/auth/session', request.url);
+
+  // Use fetch to check session status from our API route
+  const response = await fetch(sessionApiUrl, {
+    headers: {
+      Cookie: `firebase-session=${sessionCookie || ''}`,
+    },
+  });
+  
+  const { isAuthenticated, isEmailVerified } = await response.json();
 
   const authRoutes = ['/login', '/signup'];
   const publicRoutes = ['/', ...authRoutes];
@@ -53,8 +48,8 @@ export async function middleware(request: NextRequest) {
   } 
   // If user is not authenticated
   else {
-    // Protect all routes except public ones
-    if (!publicRoutes.includes(pathname)) {
+    // Protect all routes except public ones and API routes
+    if (!publicRoutes.includes(pathname) && !pathname.startsWith('/api')) {
        return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -66,11 +61,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

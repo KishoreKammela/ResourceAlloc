@@ -43,7 +43,7 @@ export default function LoginForm() {
         description: "Welcome back! Redirecting...",
       });
       // Force a hard reload to ensure middleware reruns
-      window.location.href = '/';
+      window.location.href = '/dashboard';
     } catch (error) {
       toast({
         variant: 'destructive',

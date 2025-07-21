@@ -78,9 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, [pathname, router]);
 
-    const login = (email: string, pass: string) => {
+    const login = async (email: string, pass: string) => {
         setLoading(true);
-        return signInWithEmailAndPassword(auth, email, pass).finally(() => setLoading(false));
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            const idToken = await userCredential.user.getIdToken();
+            
+            await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            });
+
+        } finally {
+            setLoading(false);
+        }
     };
 
     const signup = async (email: string, pass: string) => {
@@ -89,14 +103,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
             await sendEmailVerification(userCredential.user);
             await createUserProfile(userCredential.user.uid, userCredential.user.email);
+            
+            const idToken = await userCredential.user.getIdToken();
+             await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            });
+            
             return userCredential;
         } finally {
             setLoading(false);
         }
     };
 
-    const logout = () => {
-        return signOut(auth);
+    const logout = async () => {
+        setLoading(true);
+        try {
+            await signOut(auth);
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } finally {
+            setLoading(false);
+            // Force a reload to clear all state and re-run middleware
+            window.location.href = '/login';
+        }
     };
 
     const value = {
