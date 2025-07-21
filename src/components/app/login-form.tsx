@@ -40,9 +40,10 @@ export default function LoginForm() {
       await login(data.email, data.password);
       toast({
         title: 'Login Successful',
-        description: "Welcome back!",
+        description: "Welcome back! Redirecting...",
       });
-      router.push('/');
+      // The middleware will handle redirection automatically.
+      // No need for router.push() here.
     } catch (error) {
       toast({
         variant: 'destructive',
