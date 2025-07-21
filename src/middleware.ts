@@ -15,11 +15,10 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const { isAuthenticated, isEmailVerified } = await response.json();
+  const { isAuthenticated } = await response.json();
 
   const authRoutes = ['/login', '/signup'];
   const publicRoutes = ['/', ...authRoutes];
-  const verificationRoute = '/verify-email';
   const onboardingRoute = '/onboarding/create-profile';
 
   // If user is authenticated
@@ -29,19 +28,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // If email is not verified, redirect to verification page
-    // Allow access to verification page itself
-    if (!isEmailVerified && pathname !== verificationRoute) {
-      return NextResponse.redirect(new URL(verificationRoute, request.url));
-    }
-
-    // If email is verified, but user is on verification page, redirect to dashboard
-    if (isEmailVerified && pathname === verificationRoute) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    // Allow access to onboarding if email is verified
-    if (isEmailVerified && pathname === onboardingRoute) {
+    // Allow access to onboarding
+    if (pathname === onboardingRoute) {
       return NextResponse.next();
     }
   }

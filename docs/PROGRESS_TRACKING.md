@@ -24,8 +24,8 @@ This section covers the core user authentication, authorization, and onboarding 
 
 | Feature                  | Status       | Details & Pending Tasks                                                                                                                                                                   |
 | :----------------------- | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Email Verification**   | `✅ Done`    | New users are required to verify their email address before they can access the application dashboard. A dedicated page guides them through this process.                                 |
-| **Profile Setup Wizard** | `✅ Done`    | The core workflow is in place. New employees are automatically redirected to a profile creation page after verifying their email, ensuring all necessary data is captured.                |
+| **Email Verification**   | `❌ Pending` | This feature was temporarily disabled due to Firebase integration issues. It needs to be re-implemented, potentially with an external email service.                                        |
+| **Profile Setup Wizard** | `✅ Done`    | The core workflow is in place. New employees are automatically redirected to a profile creation page after signing up, ensuring all necessary data is captured.                                |
 | **Guided Flow**          | `❌ Pending` | Enhance the "Profile Setup Wizard" into a multi-step process with a progress bar (e.g., Step 1: Basic Info, Step 2: Skills, Step 3: Resume).                                              |
 | **Welcome Dashboard**    | `❌ Pending` | Create a simple, role-specific welcome modal or screen that appears the first time a user logs into the dashboard after completing onboarding.                                            |
 | **Onboarding Analytics** | `❌ Pending` | Add a field like `onboardingCompleted: true` to the user's profile in Firestore once they finish the setup wizard. This will allow for simple tracking and analytics on completion rates. |

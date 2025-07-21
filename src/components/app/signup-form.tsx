@@ -53,11 +53,10 @@ export default function SignupForm() {
       await signup(data.email, data.password);
       toast({
         title: 'Account Created',
-        description:
-          'You have been successfully signed up. A verification email has been sent.',
+        description: 'You have been successfully signed up. Welcome!',
       });
-      // Force a hard reload to ensure middleware reruns and redirects to verify-email page
-      window.location.href = '/';
+      // Force a hard reload to ensure middleware reruns and redirects correctly
+      window.location.href = '/dashboard';
     } catch (error) {
       toast({
         variant: 'destructive',

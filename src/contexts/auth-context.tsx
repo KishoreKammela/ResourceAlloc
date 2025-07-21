@@ -13,7 +13,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendEmailVerification,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { app } from '@/lib/firebase/config';
@@ -24,7 +23,6 @@ import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: AppUser | null;
-  isEmailVerified: boolean;
   loading: boolean;
   login: (email: string, pass: string) => Promise<any>;
   signup: (email: string, pass: string) => Promise<any>;
@@ -37,7 +35,6 @@ const auth = getAuth(app);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -45,37 +42,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Manually reload the user to get the latest emailVerified status
-        await firebaseUser.reload();
-        const freshUser = getAuth().currentUser;
+        const userProfile = await getUserProfile(firebaseUser.uid);
 
-        if (freshUser) {
-          setIsEmailVerified(freshUser.emailVerified);
-          const userProfile = await getUserProfile(freshUser.uid);
+        if (userProfile) {
+          setUser(userProfile);
 
-          if (userProfile) {
-            setUser({ ...userProfile, emailVerified: freshUser.emailVerified });
-
-            // Onboarding check
-            if (userProfile.role === 'Employee' && freshUser.emailVerified) {
-              const employeeProfile = await getEmployeeByUid(freshUser.uid);
-              if (
-                !employeeProfile &&
-                pathname !== '/onboarding/create-profile'
-              ) {
-                router.push('/onboarding/create-profile');
-              }
+          // Onboarding check
+          if (userProfile.role === 'Employee') {
+            const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
+            if (!employeeProfile && pathname !== '/onboarding/create-profile') {
+              router.push('/onboarding/create-profile');
             }
-          } else {
-            // This could happen if user exists in Auth but not in Firestore.
-            await createUserProfile(freshUser.uid, freshUser.email);
-            const newUserProfile = await getUserProfile(freshUser.uid);
-            setUser(newUserProfile);
           }
+        } else {
+          // This could happen if user exists in Auth but not in Firestore.
+          await createUserProfile(firebaseUser.uid, firebaseUser.email);
+          const newUserProfile = await getUserProfile(firebaseUser.uid);
+          setUser(newUserProfile);
         }
       } else {
         setUser(null);
-        setIsEmailVerified(false);
       }
       setLoading(false);
     });
@@ -113,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         pass
       );
-      await sendEmailVerification(userCredential.user);
       await createUserProfile(
         userCredential.user.uid,
         userCredential.user.email
@@ -148,7 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
-    isEmailVerified,
     loading,
     login,
     signup,

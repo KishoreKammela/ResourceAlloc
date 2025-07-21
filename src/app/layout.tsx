@@ -19,7 +19,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const publicPages = ['/', '/login', '/signup', '/verify-email'];
+  const publicPages = ['/', '/login', '/signup'];
   const isPublicPage = publicPages.includes(pathname);
 
   // If no user, or on a public page, or on onboarding, don't show the sidebar layout
