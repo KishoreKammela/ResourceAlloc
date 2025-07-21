@@ -18,7 +18,9 @@ export default function ReportDisplay({ report }: ReportDisplayProps) {
           <CardTitle className="text-lg font-semibold">AI Summary</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <p className="italic text-muted-foreground">&quot;{report.summary}&quot;</p>
+          <p className="italic text-muted-foreground">
+            &quot;{report.summary}&quot;
+          </p>
         </CardContent>
       </Card>
 

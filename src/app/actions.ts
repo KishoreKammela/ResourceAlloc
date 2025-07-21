@@ -177,9 +177,7 @@ export async function handleDeleteProject(projectId: string) {
 }
 
 // AI-powered actions
-export async function findCandidates(
-  requiredSkills: string[]
-): Promise<{
+export async function findCandidates(requiredSkills: string[]): Promise<{
   candidates: SuggestCandidatesOutput['candidates'];
   error: string | null;
 }> {

@@ -19,7 +19,9 @@ export default function AnalysisPage() {
         getProjects(),
       ]);
 
-      setRequiredSkills([...new Set(projects.flatMap((p) => p.requiredSkills))]);
+      setRequiredSkills([
+        ...new Set(projects.flatMap((p) => p.requiredSkills)),
+      ]);
       setAvailableSkills([...new Set(employees.flatMap((e) => e.skills))]);
       setLoading(false);
     }

@@ -13,9 +13,7 @@ type EditEmployeePageProps = {
   };
 };
 
-export default function EditEmployeePage({
-  params,
-}: EditEmployeePageProps) {
+export default function EditEmployeePage({ params }: EditEmployeePageProps) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
 

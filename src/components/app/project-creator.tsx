@@ -371,7 +371,7 @@ export default function ProjectCreator() {
                               Justification
                             </h4>
                             <p className="text-sm italic text-muted-foreground">
-                            &quot;{candidate.justification}&quot;
+                              &quot;{candidate.justification}&quot;
                             </p>
                           </div>
                           <div>

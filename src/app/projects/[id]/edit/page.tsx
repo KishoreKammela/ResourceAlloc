@@ -15,9 +15,7 @@ type EditProjectPageProps = {
   };
 };
 
-export default function EditProjectPage({
-  params,
-}: EditProjectPageProps) {
+export default function EditProjectPage({ params }: EditProjectPageProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
