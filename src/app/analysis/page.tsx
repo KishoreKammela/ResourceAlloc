@@ -1,15 +1,39 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+
 import SkillGapAnalyzer from '@/components/app/skill-gap-analyzer';
 import { getEmployees } from '@/services/employees.services';
 import { getProjects } from '@/services/projects.services';
 
-export default async function AnalysisPage() {
-  const employees = await getEmployees();
-  const projects = await getProjects();
+export default function AnalysisPage() {
+  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const requiredSkills = [
-    ...new Set(projects.flatMap((p) => p.requiredSkills)),
-  ];
-  const availableSkills = [...new Set(employees.flatMap((e) => e.skills))];
+  useEffect(() => {
+    async function fetchData() {
+      const [employees, projects] = await Promise.all([
+        getEmployees(),
+        getProjects(),
+      ]);
+
+      setRequiredSkills([...new Set(projects.flatMap((p) => p.requiredSkills))]);
+      setAvailableSkills([...new Set(employees.flatMap((e) => e.skills))]);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
