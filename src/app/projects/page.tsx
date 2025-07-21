@@ -1,16 +1,32 @@
 
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { getProjects } from '@/services/projects.services';
 import type { Project } from '@/types/project';
+import { useAuth } from "@/contexts/auth-context";
+import { useEffect, useState } from "react";
 
 
-export default async function ProjectsPage() {
-  const projects = await getProjects();
+export default function ProjectsPage() {
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProjects() {
+        const projs = await getProjects();
+        setProjects(projs);
+        setLoading(false);
+    }
+    fetchProjects();
+  }, []);
+
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -25,16 +41,28 @@ export default async function ProjectsPage() {
     }
   }
 
+  const canCreateProject = user?.role === 'Admin' || user?.role === 'Super Admin';
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-headline font-bold">Projects</h1>
-        <Button asChild>
-          <Link href="/projects/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Project
-          </Link>
-        </Button>
+        {canCreateProject && (
+            <Button asChild>
+            <Link href="/projects/new">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Project
+            </Link>
+            </Button>
+        )}
       </div>
 
       <Card>
@@ -71,6 +99,13 @@ export default async function ProjectsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+               {projects.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                           No projects have been created yet.
+                        </TableCell>
+                    </TableRow>
+                )}
             </TableBody>
           </Table>
         </CardContent>

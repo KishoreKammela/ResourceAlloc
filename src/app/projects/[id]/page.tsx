@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, Briefcase, Target, FolderKanban, Users2, Pencil, Bot, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { handleGenerateProjectReport } from '@/app/actions';
+import { generateProjectReport } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { GenerateProjectReportOutput } from '@/ai/flows/generate-project-report';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ReportDisplay from '@/components/app/report-display';
 import type { Project } from '@/types/project';
+import { useAuth } from '@/contexts/auth-context';
 
 
 type ProjectDetailPageProps = {
@@ -24,6 +25,7 @@ type ProjectDetailPageProps = {
 }
 
 export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+    const { user } = useAuth();
     const [project, setProject] = useState<Project | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isReportLoading, setIsReportLoading] = useState(false);
@@ -42,6 +44,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         fetchProject();
     }, [params.id]);
 
+    const canManageProject = user?.role === 'Admin' || user?.role === 'Super Admin';
+
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
@@ -54,7 +58,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         setIsReportLoading(true);
         setReport(null);
         try {
-            const result = await handleGenerateProjectReport(project.id);
+            const result = await generateProjectReport({ projectId: project.id });
             if (result.error) {
                 throw new Error(result.error);
             }
@@ -93,16 +97,20 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                     <p className="text-xl text-muted-foreground">{project.client}</p>
                 </div>
                  <div className="flex gap-2">
-                    <Button onClick={onGenerateReport} disabled={isReportLoading}>
-                        {isReportLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                        Generate AI Report
-                    </Button>
-                    <Button asChild>
-                        <Link href={`/projects/${project.id}/edit`}>
-                           <Pencil className="mr-2 h-4 w-4" />
-                           Edit Project
-                        </Link>
-                    </Button>
+                    {canManageProject && (
+                        <>
+                            <Button onClick={onGenerateReport} disabled={isReportLoading}>
+                                {isReportLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                                Generate AI Report
+                            </Button>
+                            <Button asChild>
+                                <Link href={`/projects/${project.id}/edit`}>
+                                   <Pencil className="mr-2 h-4 w-4" />
+                                   Edit Project
+                                </Link>
+                            </Button>
+                        </>
+                    )}
                     <Button asChild variant="outline">
                         <Link href="/projects">
                             Back to Projects

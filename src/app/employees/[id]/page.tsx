@@ -1,4 +1,6 @@
 
+'use client';
+
 import { notFound } from 'next/navigation';
 import { getEmployeeById } from '@/services/employees.services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,6 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Briefcase, Calendar, MapPin, CheckCircle, Wifi, Users, Building, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
+import { useEffect, useState } from 'react';
+import type { Employee } from '@/types/employee';
+import { Loader2 } from 'lucide-react';
+
 
 type EmployeeProfilePageProps = {
     params: {
@@ -14,12 +21,30 @@ type EmployeeProfilePageProps = {
     }
 }
 
-export default async function EmployeeProfilePage({ params }: EmployeeProfilePageProps) {
-    const employee = await getEmployeeById(params.id);
+export default function EmployeeProfilePage({ params }: EmployeeProfilePageProps) {
+    const { user } = useAuth();
+    const [employee, setEmployee] = useState<Employee | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchEmployee = async () => {
+            const emp = await getEmployeeById(params.id);
+            setEmployee(emp);
+            setLoading(false);
+        };
+        fetchEmployee();
+    }, [params.id]);
+
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
 
     if (!employee) {
         notFound();
     }
+
+    const canEdit = user?.role === 'Admin' || user?.role === 'Super Admin' || user?.uid === employee.id;
 
     const getWorkModeIcon = (workMode: string) => {
         switch (workMode) {
@@ -38,12 +63,14 @@ export default async function EmployeeProfilePage({ params }: EmployeeProfilePag
                     <p className="text-xl text-muted-foreground">{employee.title}</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button asChild>
-                        <Link href={`/employees/${employee.id}/edit`}>
-                           <Pencil className="mr-2 h-4 w-4" />
-                           Edit Profile
-                        </Link>
-                    </Button>
+                    {canEdit && (
+                        <Button asChild>
+                            <Link href={`/employees/${employee.id}/edit`}>
+                               <Pencil className="mr-2 h-4 w-4" />
+                               Edit Profile
+                            </Link>
+                        </Button>
+                    )}
                     <Button asChild variant="outline">
                         <Link href="/employees">
                             Back to Employees
