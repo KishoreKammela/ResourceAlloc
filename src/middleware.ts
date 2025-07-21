@@ -5,14 +5,15 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const authRoutes = ['/login', '/signup'];
-  
+  const publicRoutes = ['/', ...authRoutes];
+
   // If user is trying to access auth pages but is already logged in, redirect to dashboard
   if (sessionToken && authRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // If user is trying to access a protected page and is not logged in, redirect to login
-  if (!sessionToken && !authRoutes.includes(pathname) && pathname !== '/') {
+  if (!sessionToken && !publicRoutes.includes(pathname)) {
       return NextResponse.redirect(new URL('/login', request.url));
   }
   

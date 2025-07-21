@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
 import { Nav } from '@/components/app/nav';
-import { AuthProvider } from '@/contexts/auth-context';
+import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { usePathname } from 'next/navigation';
 import PublicLayout from './(public)/layout';
 import { MotionConfig } from 'framer-motion';
@@ -15,11 +15,10 @@ import { MotionConfig } from 'framer-motion';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-  const isPublicPage = pathname === '/';
+  const isPublicPage = ['/', '/login', '/signup'].includes(pathname);
 
-  if (isAuthPage || isPublicPage) {
-    return <>{children}</>;
+  if (isPublicPage) {
+    return <PublicLayout>{children}</PublicLayout>;
   }
 
   return (
