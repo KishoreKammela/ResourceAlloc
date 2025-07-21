@@ -1,44 +1,27 @@
+
+"use client";
+
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import Link from "next/link";
-
-const mockEmployees = [
-  {
-    name: "Alice Johnson",
-    title: "Senior Software Engineer",
-    skills: ["React", "Node.js", "TypeScript", "AWS"],
-    availability: "Available",
-    workMode: "Remote",
-  },
-  {
-    name: "Bob Williams",
-    title: "Project Manager",
-    skills: ["Agile", "Scrum", "JIRA", "Budgeting"],
-    availability: "On Project",
-    workMode: "Hybrid",
-  },
-  {
-    name: "Charlie Brown",
-    title: "UI/UX Designer",
-    skills: ["Figma", "Sketch", "User Research"],
-    availability: "Available",
-    workMode: "On-site",
-  },
-  {
-    name: "Diana Prince",
-    title: "DevOps Engineer",
-    skills: ["Docker", "Kubernetes", "CI/CD", "Terraform"],
-    availability: "Available",
-    workMode: "Remote",
-  },
-];
+import { getEmployees, type Employee } from '@/app/services/employees';
 
 export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  useEffect(() => {
+    // In a real app, you might fetch this data from an API.
+    // For now, we use our mock service.
+    const allEmployees = getEmployees();
+    setEmployees(allEmployees);
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -98,9 +81,13 @@ export default function EmployeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockEmployees.map((employee) => (
-                <TableRow key={employee.name}>
-                  <TableCell className="font-medium">{employee.name}</TableCell>
+              {employees.map((employee) => (
+                <TableRow key={employee.id}>
+                  <TableCell className="font-medium">
+                     <Link href={`/employees/${employee.id}`} className="hover:underline text-primary">
+                        {employee.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{employee.title}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
