@@ -3,6 +3,7 @@
 import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
+import { addEmployee, type Employee } from './services/employees';
 
 export async function analyzeResume(resumeDataUri: string) {
   try {
@@ -41,6 +42,23 @@ export async function findCandidates(requiredSkills: string[]) {
         return {
             candidates: [],
             error: `Failed to find candidates: ${error}`
+        }
+    }
+}
+
+export async function createEmployee(employeeData: Omit<Employee, 'id' | 'availability' | 'workMode' | 'title'>) {
+    try {
+        const newEmployee = addEmployee(employeeData);
+        return {
+            employee: newEmployee,
+            error: null
+        }
+    } catch(e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            employee: null,
+            error: `Failed to create employee: ${error}`
         }
     }
 }

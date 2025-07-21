@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Plus, Upload, User, X, BadgePlus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataUri } from '@/lib/utils';
-import { analyzeResume } from '@/app/actions';
+import { analyzeResume, createEmployee } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { AnimatePresence, motion } from "framer-motion"
@@ -33,7 +34,9 @@ type AnalysisResult = {
 
 export default function ProfileCreator() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [finalSkills, setFinalSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
@@ -98,8 +101,37 @@ export default function ProfileCreator() {
     setAnalysisResult(null);
     setFinalSkills([]);
     setIsLoading(false);
+    setIsSaving(false);
     setFileName('');
   }
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+        const { name, email } = form.getValues();
+        const result = await createEmployee({ name, email, skills: finalSkills });
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        toast({
+            title: 'Profile Created',
+            description: `A new profile for ${result.employee?.name} has been successfully created.`,
+        });
+
+        router.push('/employees');
+
+    } catch (error) {
+         toast({
+            variant: 'destructive',
+            title: 'Error Saving Profile',
+            description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   return (
     <Card className="max-w-4xl mx-auto shadow-lg">
@@ -240,12 +272,12 @@ export default function ProfileCreator() {
               </div>
           </CardContent>
            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={resetFlow}>
+              <Button variant="ghost" onClick={resetFlow} disabled={isSaving}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
-              <Button>
-                <User className="mr-2 h-4 w-4" />
+              <Button onClick={handleSaveProfile} disabled={isSaving}>
+                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <User className="mr-2 h-4 w-4" />}
                 Save Profile
               </Button>
            </CardFooter>
