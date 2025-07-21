@@ -59,8 +59,12 @@ export async function getEmployeeByUid(uid: string): Promise<Employee | null> {
 export async function addEmployee(
   employeeData: Omit<Employee, 'id'>
 ): Promise<Employee> {
-  const docRef = await addDoc(employeesCollection, employeeData);
-  return { id: docRef.id, ...employeeData };
+  const newEmployeeData = {
+    ...employeeData,
+    status: 'Approved' as const, // Default status for new employees
+  };
+  const docRef = await addDoc(employeesCollection, newEmployeeData);
+  return { id: docRef.id, ...newEmployeeData };
 }
 
 export async function updateEmployee(

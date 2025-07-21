@@ -160,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         skills: [],
         availability: 'Available',
         workMode: 'Remote',
+        status: 'Approved',
       });
 
       await addAuditLog({

@@ -174,7 +174,12 @@ export default function ProfileCreator({
 
     setIsSaving(true);
     try {
-      const result = await createEmployee({ ...data, skills, uid: user.uid });
+      const result = await createEmployee({
+        ...data,
+        skills,
+        uid: user.uid,
+        status: 'Approved',
+      });
 
       if (result.error) {
         throw new Error(result.error);

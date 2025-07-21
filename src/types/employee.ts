@@ -6,6 +6,7 @@ export type Employee = {
   skills: string[];
   availability: 'Available' | 'On Project';
   workMode: 'Remote' | 'Hybrid' | 'On-site';
+  status: 'Approved' | 'Pending';
   email?: string;
   professionalSummary?: string;
   location?: string;

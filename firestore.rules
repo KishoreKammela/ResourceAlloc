@@ -2,30 +2,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow anyone to create a company during signup
-    match /companies/{companyId} {
-      allow create: if true;
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
-      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Admin';
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // Users can only read/write their own user profile
+    function isAdmin() {
+      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return userRole in ['Admin', 'Super Admin'];
+    }
+
+    function isEmployeeOwner(employeeId) {
+      let employeeUid = get(/databases/$(database)/documents/employees/$(employeeId)).data.uid;
+      return request.auth.uid == employeeUid;
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // Allow Super Admin to read user data for their company
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Super Admin' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == resource.data.companyId;
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create: if request.auth != null;
     }
 
-    // Admins/Super Admins can manage employees in their own company
-    match /employees/{employeeId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+    match /companies/{companyId} {
+      allow read, create, update: if request.auth != null;
     }
     
-    // Admins/Super Admins can manage projects in their own company
+    match /employees/{employeeId} {
+      allow list: if request.auth != null;
+      allow read, update, delete: if request.auth != null && (isEmployeeOwner(employeeId) || isAdmin());
+      allow create: if request.auth != null;
+    }
+
     match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+      allow read, list: if request.auth != null;
+      allow create, update, delete: if request.auth != null && isAdmin();
+    }
+    
+    match /audit_logs/{logId} {
+      allow create: if request.auth != null;
+      allow read, list, update, delete: if false; // Logs are immutable and private
     }
   }
 }
