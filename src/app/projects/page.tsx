@@ -1,38 +1,35 @@
+
+"use client";
+
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-
-const mockProjects = [
-  {
-    name: "E-commerce Platform Revamp",
-    client: "Future Gadget Labs",
-    timeline: "Q3 2024 - Q1 2025",
-    status: "In Progress",
-  },
-  {
-    name: "Mobile Banking App",
-    client: "Global Bank Corp",
-    timeline: "Q2 2024 - Q4 2024",
-    status: "In Progress",
-  },
-  {
-    name: "AI-Powered Logistics Optimizer",
-    client: "ShipItFast Inc.",
-    timeline: "Q1 2024 - Q3 2024",
-    status: "Completed",
-  },
-  {
-    name: "Cloud Infrastructure Migration",
-    client: "Innovate Solutions",
-    timeline: "Q4 2024 - Q2 2025",
-    status: "Planning",
-  },
-];
+import { getProjects, type Project } from '@/app/services/projects';
 
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    setProjects(getProjects());
+  }, []);
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case 'In Progress':
+        return 'text-blue-600 border-blue-600';
+      case 'Completed':
+        return 'text-green-600 border-green-600';
+      case 'Planning':
+        return 'text-gray-600 border-gray-600';
+      default:
+        return 'text-foreground';
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -60,19 +57,19 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockProjects.map((project) => (
-                <TableRow key={project.name}>
-                  <TableCell className="font-medium">{project.name}</TableCell>
+              {projects.map((project) => (
+                <TableRow key={project.id}>
+                  <TableCell className="font-medium">
+                     <Link href={`/projects/${project.id}`} className="hover:underline text-primary">
+                        {project.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{project.client}</TableCell>
                   <TableCell>{project.timeline}</TableCell>
                   <TableCell>
                      <Badge 
                       variant="outline"
-                      className={
-                        project.status === 'In Progress' ? 'text-blue-600 border-blue-600' : 
-                        project.status === 'Completed' ? 'text-green-600 border-green-600' : 
-                        'text-gray-600 border-gray-600'
-                      }
+                      className={getStatusBadgeClass(project.status)}
                     >
                       {project.status}
                     </Badge>

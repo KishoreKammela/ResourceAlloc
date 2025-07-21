@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Briefcase, UserPlus } from "lucide-react";
+import { Home, Users, Briefcase, UserPlus, FolderPlus } from "lucide-react";
 
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Icons } from "@/components/icons";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/employees", label: "Employees", icon: Users, tooltip: "Employees" },
   { href: "/employees/new", label: "Add Employee", icon: UserPlus, tooltip: "Add New Employee" },
   { href: "/projects", label: "Projects", icon: Briefcase, tooltip: "Projects" },
+  { href: "/projects/new", label: "New Project", icon: FolderPlus, tooltip: "Create New Project" },
 ];
 
 export function Nav() {
