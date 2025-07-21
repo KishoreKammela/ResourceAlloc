@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Plus, X, User, Save, ArrowLeft, BadgePlus, UserPlus, UserMinus } from 'lucide-react';
+import { Loader2, Plus, X, User, Save, ArrowLeft, BadgePlus, UserPlus, UserMinus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { handleUpdateProject } from '@/app/actions';
+import { handleUpdateProject, handleDeleteProject } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import type { Employee } from '@/types/employee';
@@ -22,6 +22,17 @@ import { Textarea } from '../ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 const projectFormSchema = z.object({
@@ -36,6 +47,7 @@ export default function ProjectEditor({ project, allEmployees }: { project: Proj
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [requiredSkills, setRequiredSkills] = useState<string[]>(project.requiredSkills);
   const [newSkill, setNewSkill] = useState('');
   const [team, setTeam] = useState<Employee[]>(project.team);
@@ -76,6 +88,30 @@ export default function ProjectEditor({ project, allEmployees }: { project: Proj
       setIsSaving(false);
     }
   };
+  
+  const onDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await handleDeleteProject(project.id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      toast({
+        title: 'Project Deleted',
+        description: `The project "${project.name}" has been deleted.`,
+      });
+      router.push('/projects');
+      router.refresh();
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Error deleting project',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   const addSkill = (skill: string) => {
     const trimmedSkill = skill.trim();
@@ -250,13 +286,39 @@ export default function ProjectEditor({ project, allEmployees }: { project: Proj
 
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" asChild>
-                <Link href={`/projects/${project.id}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Cancel
-                </Link>
-            </Button>
-            <Button type="submit" disabled={isSaving}>
+            <div className="flex gap-2">
+                 <Button variant="outline" asChild>
+                    <Link href={`/projects/${project.id}`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Cancel
+                    </Link>
+                </Button>
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isSaving || isDeleting}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the project
+                        "{project.name}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDelete} disabled={isDeleting}>
+                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </div>
+            <Button type="submit" disabled={isSaving || isDeleting}>
                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Changes
             </Button>

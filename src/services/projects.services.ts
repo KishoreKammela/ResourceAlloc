@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase/config';
 import type { Project, UpdatableProjectData } from '@/types/project';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const projectsCollection = collection(db, 'projects');
 
@@ -27,4 +27,15 @@ export async function updateProject(id: string, data: UpdatableProjectData): Pro
     const docRef = doc(db, 'projects', id);
     await updateDoc(docRef, data);
     return await getProjectById(id);
+}
+
+export async function deleteProject(id: string): Promise<boolean> {
+    try {
+        const docRef = doc(db, 'projects', id);
+        await deleteDoc(docRef);
+        return true;
+    } catch(e) {
+        console.error("Error deleting project: ", e);
+        return false;
+    }
 }

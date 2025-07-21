@@ -5,7 +5,7 @@ import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
 import { addEmployee, updateEmployee, deleteEmployee } from '@/services/employees.services';
-import { addProject, updateProject } from '@/services/projects.services';
+import { addProject, updateProject, deleteProject } from '@/services/projects.services';
 import type { Employee, UpdatableEmployeeData } from '@/types/employee';
 import type { Project, UpdatableProjectData } from '@/types/project';
 
@@ -142,6 +142,27 @@ export async function handleUpdateProject(projectId: string, projectData: Updata
         return {
             project: null,
             error: `Failed to update project: ${error}`
+        }
+    }
+}
+
+
+export async function handleDeleteProject(projectId: string) {
+    try {
+        const success = await deleteProject(projectId);
+        if (!success) {
+            throw new Error('Project not found or could not be deleted.');
+        }
+        return {
+            success: true,
+            error: null
+        }
+    } catch(e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            success: false,
+            error: `Failed to delete project: ${error}`
         }
     }
 }
