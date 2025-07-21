@@ -4,6 +4,7 @@ import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
 import { addEmployee, type Employee } from './services/employees';
+import { addProject, type Project } from './services/projects';
 
 export async function analyzeResume(resumeDataUri: string) {
   try {
@@ -59,6 +60,23 @@ export async function createEmployee(employeeData: Omit<Employee, 'id' | 'availa
         return {
             employee: null,
             error: `Failed to create employee: ${error}`
+        }
+    }
+}
+
+export async function createProject(projectData: Omit<Project, 'id' | 'status' | 'timeline' | 'description'>) {
+    try {
+        const newProject = addProject(projectData);
+        return {
+            project: newProject,
+            error: null
+        }
+    } catch(e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            project: null,
+            error: `Failed to create project: ${error}`
         }
     }
 }

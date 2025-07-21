@@ -1,7 +1,7 @@
 
 // This is a mock data service.
 // In a real application, you would fetch this data from a database.
-
+import { v4 as uuidv4 } from 'uuid';
 import { getEmployeeById, type Employee } from './employees';
 
 export type Project = {
@@ -65,4 +65,17 @@ export function getProjects(): Project[] {
 
 export function getProjectById(id: string): Project | undefined {
     return mockProjects.find(p => p.id === id);
+}
+
+
+export function addProject(projectData: Omit<Project, 'id' | 'status' | 'timeline' | 'description'>): Project {
+    const newProject: Project = {
+        id: uuidv4(),
+        status: 'Planning', // Default status
+        timeline: 'TBD', // Default timeline
+        description: 'No description provided.', // Default description
+        ...projectData,
+    };
+    mockProjects.push(newProject);
+    return newProject;
 }

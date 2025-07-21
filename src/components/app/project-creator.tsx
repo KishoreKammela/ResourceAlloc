@@ -4,19 +4,21 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Plus, X, Search, User, Trash2, Lightbulb, Star } from 'lucide-react';
+import { Loader2, Plus, X, Search, User, Trash2, Lightbulb, Star, UserPlus, UserMinus } from 'lucide-react';
 import { AnimatePresence, motion } from "framer-motion"
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { findCandidates } from '@/app/actions';
+import { findCandidates, createProject } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import type { Employee } from '@/app/services/employees';
 
 
 const projectFormSchema = z.object({
@@ -26,14 +28,19 @@ const projectFormSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
-type CandidatesResult = SuggestCandidatesOutput
+type Candidate = SuggestCandidatesOutput['candidates'][0] & { id?: string };
+type CandidatesResult = { candidates: Candidate[] };
+
 
 export default function ProjectCreator() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [candidatesResult, setCandidatesResult] = useState<CandidatesResult | null>(null);
   const [requiredSkills, setRequiredSkills] = useState<string[]>(['React', 'Node.js', 'TypeScript']);
   const [newSkill, setNewSkill] = useState('');
+  const [selectedCandidates, setSelectedCandidates] = useState<Employee[]>([]);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -43,6 +50,7 @@ export default function ProjectCreator() {
   const handleFindCandidates: SubmitHandler<ProjectFormValues> = async (data) => {
     setIsLoading(true);
     setCandidatesResult(null);
+    setSelectedCandidates([]);
 
     if (requiredSkills.length === 0) {
         toast({
@@ -61,7 +69,7 @@ export default function ProjectCreator() {
         throw new Error(result.error);
       }
 
-      setCandidatesResult(result);
+      setCandidatesResult(result as CandidatesResult);
 
       toast({
         title: 'Candidates Found',
@@ -100,8 +108,65 @@ export default function ProjectCreator() {
     form.reset();
     setCandidatesResult(null);
     setRequiredSkills(['React', 'Node.js', 'TypeScript']);
+    setSelectedCandidates([]);
     setIsLoading(false);
+    setIsSaving(false);
   }
+
+  const toggleCandidateSelection = (candidate: Candidate) => {
+    setSelectedCandidates(prev => {
+        const isSelected = prev.some(c => c.name === candidate.name);
+        if (isSelected) {
+            return prev.filter(c => c.name !== candidate.name);
+        } else {
+            // This is a bit of a hack since the AI doesn't return the full employee object.
+            // In a real app, you'd fetch the full employee record.
+            const employeeData: Employee = {
+                id: candidate.name, // Assuming name is unique for now
+                name: candidate.name,
+                title: candidate.title,
+                skills: candidate.matchingSkills,
+                availability: 'On Project',
+                workMode: 'Remote'
+            };
+            return [...prev, employeeData];
+        }
+    })
+  }
+
+  const handleSaveProject = async () => {
+    setIsSaving(true);
+    try {
+        const { name, client } = form.getValues();
+        const result = await createProject({
+            name,
+            client,
+            requiredSkills,
+            team: selectedCandidates
+        });
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        toast({
+            title: 'Project Created',
+            description: `Project "${result.project?.name}" has been successfully created.`,
+        });
+
+        router.push('/projects');
+
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error Saving Project',
+            description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
 
   return (
     <Card className="max-w-4xl mx-auto shadow-lg">
@@ -170,7 +235,7 @@ export default function ProjectCreator() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || !!candidatesResult}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                 Find Candidates
               </Button>
@@ -192,52 +257,55 @@ export default function ProjectCreator() {
               
               {candidatesResult.candidates.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {candidatesResult.candidates.map((candidate, index) => (
-                        <Card key={index} className="flex flex-col">
-                            <CardHeader className="flex flex-row items-center gap-4">
-                                <Avatar className="h-12 w-12">
-                                     <AvatarImage src={`https://i.pravatar.cc/150?u=${candidate.name}`} alt={candidate.name} />
-                                     <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-xl">{candidate.name}</CardTitle>
-                                    <CardDescription>{candidate.title}</CardDescription>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-grow space-y-4">
-                                <div>
-                                    <h4 className="font-semibold text-sm mb-2 flex items-center"><Lightbulb className="w-4 h-4 mr-2 text-yellow-500"/> Justification</h4>
-                                    <p className="text-sm text-muted-foreground italic">"{candidate.justification}"</p>
-                                </div>
-                                 <div>
-                                    <h4 className="font-semibold text-sm mb-2 flex items-center"><Star className="w-4 h-4 mr-2 text-amber-500"/> Matching Skills</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {candidate.matchingSkills.map(skill => (
-                                            <Badge key={skill} variant="secondary">{skill}</Badge>
-                                        ))}
+                    {candidatesResult.candidates.map((candidate, index) => {
+                        const isSelected = selectedCandidates.some(c => c.name === candidate.name);
+                        return (
+                            <Card key={index} className={`flex flex-col ${isSelected ? 'border-primary' : ''}`}>
+                                <CardHeader className="flex flex-row items-center gap-4">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={`https://i.pravatar.cc/150?u=${candidate.name}`} alt={candidate.name} />
+                                        <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <CardTitle className="text-xl">{candidate.name}</CardTitle>
+                                        <CardDescription>{candidate.title}</CardDescription>
                                     </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button className="w-full">
-                                    <User className="mr-2 h-4 w-4"/>
-                                    View Full Profile
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                                </CardHeader>
+                                <CardContent className="flex-grow space-y-4">
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-2 flex items-center"><Lightbulb className="w-4 h-4 mr-2 text-yellow-500"/> Justification</h4>
+                                        <p className="text-sm text-muted-foreground italic">"{candidate.justification}"</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-2 flex items-center"><Star className="w-4 h-4 mr-2 text-amber-500"/> Matching Skills</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {candidate.matchingSkills.map(skill => (
+                                                <Badge key={skill} variant="secondary">{skill}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button className="w-full" variant={isSelected ? "secondary" : "default"} onClick={() => toggleCandidateSelection(candidate)}>
+                                        {isSelected ? <UserMinus className="mr-2 h-4 w-4"/> : <UserPlus className="mr-2 h-4 w-4"/>}
+                                        {isSelected ? 'Remove from Project' : 'Assign to Project'}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">No suitable candidates found with the specified skills.</p>
               )}
           </CardContent>
            <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={resetFlow}>
+              <Button variant="ghost" onClick={resetFlow} disabled={isSaving}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button onClick={handleSaveProject} disabled={isSaving || selectedCandidates.length === 0}>
+                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                 Create Project & Assign Team
               </Button>
            </CardFooter>
