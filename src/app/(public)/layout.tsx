@@ -1,7 +1,9 @@
+'use client';
+
 import { PublicFooter } from './_components/footer';
 import { PublicNavbar } from './_components/navbar';
 
-export default function PublicLayout({
+export default function PublicPagesLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -9,7 +11,7 @@ export default function PublicLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <PublicNavbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex flex-1 flex-col">{children}</main>
       <PublicFooter />
     </div>
   );

@@ -3,20 +3,12 @@
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarContent,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import { Header } from '@/components/app/header';
-import { Nav } from '@/components/app/nav';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import PublicLayout from './(public)/layout';
 import { Inter, Space_Grotesk } from 'next/font/google';
+import { useEffect } from 'react';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -30,14 +22,28 @@ const fontSpaceGrotesk = Space_Grotesk({
   display: 'swap',
 });
 
-function AppLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const publicPages = ['/', '/login', '/signup'];
-  const isPublicPage = publicPages.includes(pathname);
+  const isPublicPath =
+    pathname === '/' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup');
+  const isAppPath = !isPublicPath;
 
-  if (loading) {
+  useEffect(() => {
+    if (loading) return;
+
+    if (user && isPublicPath) {
+      router.push('/dashboard');
+    } else if (!user && isAppPath) {
+      router.push('/login');
+    }
+  }, [user, loading, isPublicPath, isAppPath, pathname, router]);
+
+  if (loading || (user && isPublicPath) || (!user && isAppPath)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -45,31 +51,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Let the file system routing handle the layout for public pages
-  if (isPublicPage || !user) {
-    return <>{children}</>;
-  }
-
-  if (pathname.startsWith('/onboarding')) {
-    return <>{children}</>;
-  }
-
-  // If the user is logged in and on a private page, show the app layout with sidebar.
-  return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarContent>
-          <Nav />
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1 p-4 md:p-8">{children}</main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  return <>{children}</>;
 }
 
 export default function RootLayout({
@@ -93,7 +75,7 @@ export default function RootLayout({
       <body className={cn('font-body antialiased', 'bg-background')}>
         <AuthProvider>
           <MotionConfig reducedMotion="user">
-            <AppLayout>{children}</AppLayout>
+            <AuthRedirect>{children}</AuthRedirect>
           </MotionConfig>
         </AuthProvider>
         <Toaster />
