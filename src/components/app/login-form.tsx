@@ -42,8 +42,8 @@ export default function LoginForm() {
         title: 'Login Successful',
         description: "Welcome back! Redirecting...",
       });
-      // The middleware will handle redirection automatically.
-      // No need for router.push() here.
+      // Force a hard reload to ensure middleware reruns
+      window.location.href = '/';
     } catch (error) {
       toast({
         variant: 'destructive',

@@ -42,8 +42,8 @@ export default function SignupForm() {
         title: 'Account Created',
         description: 'You have been successfully signed up. Welcome!',
       });
-      // The middleware will handle redirection automatically.
-      // No need for router.push() here.
+      // Force a hard reload to ensure middleware reruns
+      window.location.href = '/';
     } catch (error) {
       toast({
         variant: 'destructive',
