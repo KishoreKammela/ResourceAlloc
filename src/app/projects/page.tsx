@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
+import Link from "next/link";
 
 const mockProjects = [
   {
@@ -36,9 +37,11 @@ export default function ProjectsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-headline font-bold">Projects</h1>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Project
+        <Button asChild>
+          <Link href="/projects/new">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Project
+          </Link>
         </Button>
       </div>
 
