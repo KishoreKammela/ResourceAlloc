@@ -13,9 +13,13 @@ import { MotionConfig } from 'framer-motion';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublicPage = ['/', '/login', '/signup'].includes(pathname);
+  const { user } = useAuth();
 
-  if (isPublicPage) {
+  const publicPages = ['/', '/login', '/signup', '/verify-email'];
+  const isPublicPage = publicPages.includes(pathname);
+  
+  // If no user, or on a public page, or on onboarding, don't show the sidebar layout
+  if (!user || isPublicPage || pathname.startsWith('/onboarding')) {
     return <>{children}</>;
   }
 

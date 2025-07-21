@@ -4,4 +4,5 @@ export interface AppUser {
   uid: string;
   email: string | null;
   role: UserRole;
+  emailVerified?: boolean;
 }
