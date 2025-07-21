@@ -1,57 +1,33 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
+    // Helper function to check for admin roles
     function isAdmin() {
-      // Ensure the user document exists before trying to access its data.
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+      return request.auth.token.role in ['Admin', 'Super Admin'];
     }
 
-    // Companies: Can only be created during signup. Read-only for authenticated users.
-    match /companies/{companyId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null; // Simplification for now
-      allow update, delete: if false;
-    }
-
-    // Users: Can only manage their own profile.
-    match /users/{userId} {
-      allow read, update: if isOwner(userId);
-      allow create: if request.auth != null;
-      allow delete: if false;
-    }
-
-    // Employees:
     match /employees/{employeeId} {
-      // Anyone authenticated can list employees to see the roster.
+      // Allow any authenticated user to list employees.
       allow list: if request.auth != null;
-      // Granular read for individual profiles.
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      // Only the user themselves or an admin can update/delete their profile.
-      // We use `getAfter` for create/update to check the incoming data's uid.
-      allow update: if request.auth != null && (isOwner(request.resource.data.uid) || isAdmin());
-      allow delete: if request.auth != null && (isOwner(resource.data.uid) || isAdmin());
+      
+      // Allow admins to create any employee. A user can create their own profile.
+      allow create: if request.auth != null && (isAdmin() || request.auth.uid == request.resource.data.uid);
+
+      // Allow full access to admins or the user who owns the document.
+      allow read, update, delete: if request.auth != null && (isAdmin() || request.auth.uid == resource.data.uid);
     }
 
-    // Projects:
-    match /projects/{projectId} {
-      allow read, list: if request.auth != null;
-      allow create, update, delete: if request.auth != null && isAdmin();
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
     }
 
-    // Audit Logs: Write-only from server-side actions (no client access).
+    match /companies/{companyId} {
+      allow read, write: if request.auth != null; // Simplistic rule for now
+    }
+    
     match /audit_logs/{logId} {
-      allow read, list, update, delete: if false;
-      allow create: if request.auth == null; // Placeholder for server-side/functions
+      allow create: if request.auth != null;
+      allow read, list, update, delete: if false; // Logs are immutable
     }
   }
 }
