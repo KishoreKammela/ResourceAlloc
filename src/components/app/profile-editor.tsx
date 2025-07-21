@@ -12,12 +12,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { handleUpdateEmployee } from '@/app/actions';
+import { handleUpdateEmployee, handleDeleteEmployee } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import type { Employee } from '@/app/services/employees';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -33,6 +44,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [finalSkills, setFinalSkills] = useState<string[]>(employee.skills);
   const [newSkill, setNewSkill] = useState('');
 
@@ -72,6 +84,30 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
       setIsSaving(false);
     }
   };
+
+  const onDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await handleDeleteEmployee(employee.id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      toast({
+        title: 'Employee Deleted',
+        description: `The profile for ${employee.name} has been deleted.`,
+      });
+      router.push('/employees');
+      router.refresh();
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Error deleting profile',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   const addSkill = (skill: string) => {
     const trimmedSkill = skill.trim();
@@ -221,13 +257,39 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" asChild>
-                <Link href={`/employees/${employee.id}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Cancel
-                </Link>
-            </Button>
-            <Button type="submit" disabled={isSaving}>
+            <div className="flex gap-2">
+                <Button variant="outline" asChild>
+                    <Link href={`/employees/${employee.id}`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Cancel
+                    </Link>
+                </Button>
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isSaving || isDeleting}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Employee
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the employee
+                        profile for {employee.name}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDelete} disabled={isDeleting}>
+                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </div>
+            <Button type="submit" disabled={isSaving || isDeleting}>
                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Save Changes
             </Button>

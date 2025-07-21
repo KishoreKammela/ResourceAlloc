@@ -4,7 +4,7 @@
 import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
-import { addEmployee, updateEmployee, type Employee, UpdatableEmployeeData } from './services/employees';
+import { addEmployee, updateEmployee, type Employee, UpdatableEmployeeData, deleteEmployee } from './services/employees';
 import { addProject, updateProject, type Project, type UpdatableProjectData } from './services/projects';
 
 export async function analyzeResume(resumeDataUri: string) {
@@ -84,6 +84,28 @@ export async function handleUpdateEmployee(employeeId: string, employeeData: Upd
         }
     }
 }
+
+
+export async function handleDeleteEmployee(employeeId: string) {
+    try {
+        const success = deleteEmployee(employeeId);
+        if (!success) {
+            throw new Error('Employee not found or could not be deleted.');
+        }
+        return {
+            success: true,
+            error: null
+        }
+    } catch(e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            success: false,
+            error: `Failed to delete employee: ${error}`
+        }
+    }
+}
+
 
 export async function createProject(projectData: Omit<Project, 'id' | 'status' | 'timeline' | 'description'>) {
     try {

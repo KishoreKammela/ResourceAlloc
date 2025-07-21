@@ -16,7 +16,7 @@ export type Employee = {
 export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;
 
 
-const mockEmployees: Employee[] = [
+let mockEmployees: Employee[] = [
   {
     id: "1",
     name: "Alice Johnson",
@@ -114,4 +114,11 @@ export function updateEmployee(id: string, data: UpdatableEmployeeData): Employe
     };
     mockEmployees[employeeIndex] = updatedEmployee;
     return updatedEmployee;
+}
+
+
+export function deleteEmployee(id: string): boolean {
+    const initialLength = mockEmployees.length;
+    mockEmployees = mockEmployees.filter(emp => emp.id !== id);
+    return mockEmployees.length < initialLength;
 }
