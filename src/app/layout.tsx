@@ -9,16 +9,14 @@ import { Header } from '@/components/app/header';
 import { Nav } from '@/components/app/nav';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { usePathname } from 'next/navigation';
-import PublicLayout from './(public)/layout';
 import { MotionConfig } from 'framer-motion';
-
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicPage = ['/', '/login', '/signup'].includes(pathname);
 
   if (isPublicPage) {
-    return <PublicLayout>{children}</PublicLayout>;
+    return <>{children}</>;
   }
 
   return (
