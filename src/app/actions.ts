@@ -4,6 +4,7 @@
 import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import { suggestCandidates } from '@/ai/flows/suggest-candidates';
+import { performSkillGapAnalysis } from '@/ai/flows/skill-gap-analysis';
 import { addEmployee, updateEmployee, deleteEmployee } from '@/services/employees.services';
 import { addProject, updateProject, deleteProject } from '@/services/projects.services';
 import type { Employee, UpdatableEmployeeData } from '@/types/employee';
@@ -47,6 +48,23 @@ export async function findCandidates(requiredSkills: string[]) {
             candidates: [],
             error: `Failed to find candidates: ${error}`
         }
+    }
+}
+
+export async function handleSkillGapAnalysis(requiredSkills: string[], availableSkills: string[]) {
+    try {
+        const result = await performSkillGapAnalysis({ requiredSkills, availableSkills });
+        return {
+            analysis: result,
+            error: null,
+        };
+    } catch (e: any) {
+        console.error(e);
+        const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return {
+            analysis: null,
+            error: `Failed to perform skill gap analysis: ${error}`,
+        };
     }
 }
 
