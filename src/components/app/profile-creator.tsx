@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, User, X, BadgePlus, ArrowLeft } from 'lucide-react';
+import {
+  Loader2,
+  User,
+  X,
+  BadgePlus,
+  ArrowLeft,
+  Upload,
+  Sparkles,
+  Lightbulb,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -26,7 +35,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { createEmployee } from '@/app/actions';
+import { createEmployee, analyzeResume } from '@/app/actions';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -40,6 +49,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { updateUserProfile } from '@/services/users.services';
 import { Progress } from '../ui/progress';
+import { fileToDataUri } from '@/lib/utils';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -53,6 +63,11 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 type ProfileCreatorProps = {
   isOnboarding?: boolean;
+};
+
+type ResumeAnalysisResult = {
+  extractedSkills: string[];
+  suggestedSkills: string[];
 };
 
 const steps = [
@@ -72,8 +87,12 @@ export default function ProfileCreator({
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
+  const [analysisResult, setAnalysisResult] =
+    useState<ResumeAnalysisResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -103,6 +122,46 @@ export default function ProfileCreator({
     }
   };
 
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    try {
+      const dataUri = await fileToDataUri(file);
+      const result = await analyzeResume(dataUri);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setAnalysisResult(result);
+      toast({
+        title: 'Resume Analyzed',
+        description: 'AI has extracted and suggested skills from the resume.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Analyzing Resume',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsAnalyzing(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const processForm: SubmitHandler<ProfileFormValues> = async (data) => {
     if (!user?.uid) {
       toast({
@@ -121,7 +180,6 @@ export default function ProfileCreator({
         throw new Error(result.error);
       }
 
-      // If this is part of onboarding, update the user profile to mark it as complete
       if (isOnboarding) {
         await updateUserProfile(user.uid, { onboardingCompleted: false });
         await refreshUser();
@@ -319,10 +377,99 @@ export default function ProfileCreator({
                 )}
 
                 {currentStep === 1 && (
-                  <div className="space-y-4">
-                    <h3 className="font-headline text-lg font-semibold">
-                      Skills
-                    </h3>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-headline text-lg font-semibold">
+                        Skills
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Add skills manually or upload a resume to let our AI do
+                        the work.
+                      </p>
+                    </div>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          onChange={handleFileChange}
+                          accept=".pdf,.doc,.docx"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isAnalyzing}
+                          className="w-full"
+                        >
+                          {isAnalyzing ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                          )}
+                          {isAnalyzing
+                            ? 'Analyzing Resume...'
+                            : 'Upload Resume for AI Analysis'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {analysisResult && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-4 rounded-lg border bg-muted/30 p-4"
+                      >
+                        <h4 className="flex items-center font-semibold">
+                          <Sparkles className="mr-2 h-5 w-5 text-primary" /> AI
+                          Skill Suggestions
+                        </h4>
+                        <div>
+                          <p className="mb-2 flex items-center text-sm font-medium">
+                            <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
+                            Extracted from Resume
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {analysisResult.extractedSkills.map((skill) => (
+                              <Button
+                                key={skill}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => addSkill(skill)}
+                                className="bg-background"
+                              >
+                                {skill}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-2 flex items-center text-sm font-medium">
+                            <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
+                            Suggested by AI
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {analysisResult.suggestedSkills.map((skill) => (
+                              <Button
+                                key={skill}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => addSkill(skill)}
+                                className="bg-background"
+                              >
+                                {skill}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    <Separator />
 
                     <div>
                       <FormLabel>Current Skills</FormLabel>
@@ -345,7 +492,7 @@ export default function ProfileCreator({
                         ))}
                         {skills.length === 0 && (
                           <p className="text-sm text-muted-foreground">
-                            Add skills below.
+                            Upload a resume or add skills manually below.
                           </p>
                         )}
                       </div>
