@@ -12,7 +12,9 @@ import {
 } from 'firebase/auth';
 import { app } from '@/lib/firebase/config';
 import { createUserProfile, getUserProfile } from '@/services/users.services';
+import { getEmployeeByUid } from '@/services/employees.services';
 import type { AppUser } from '@/types/user';
+import { usePathname, useRouter } from 'next/navigation';
 
 
 interface AuthContextType {
@@ -30,6 +32,8 @@ const auth = getAuth(app);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -37,6 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userProfile = await getUserProfile(firebaseUser.uid);
                 if(userProfile) {
                     setUser(userProfile);
+
+                    // Onboarding check
+                    if (userProfile.role === 'Employee') {
+                        const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
+                        if (!employeeProfile && pathname !== '/onboarding/create-profile') {
+                            router.push('/onboarding/create-profile');
+                        }
+                    }
+
                 } else {
                     // This could happen if user exists in Auth but not in Firestore.
                     // We can create a profile here as a fallback.
@@ -51,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [pathname, router]);
 
     const login = (email: string, pass: string) => {
         setLoading(true);

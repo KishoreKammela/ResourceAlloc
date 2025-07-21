@@ -1,6 +1,7 @@
 
 export type Employee = {
     id: string;
+    uid: string; // Firebase Auth User ID
     name: string;
     title: string;
     skills: string[];

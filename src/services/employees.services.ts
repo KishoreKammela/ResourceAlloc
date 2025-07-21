@@ -1,7 +1,7 @@
 
 import { db } from '@/lib/firebase/config';
 import type { Employee, UpdatableEmployeeData } from '@/types/employee';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, limit } from 'firebase/firestore';
 
 const employeesCollection = collection(db, 'employees');
 
@@ -25,6 +25,21 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
         return null;
     } catch (error) {
         console.error("Error fetching employee by ID: ", error);
+        return null;
+    }
+}
+
+export async function getEmployeeByUid(uid: string): Promise<Employee | null> {
+    try {
+        const q = query(employeesCollection, where("uid", "==", uid), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const doc = snapshot.docs[0];
+            return { id: doc.id, ...doc.data() } as Employee;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching employee by UID: ", error);
         return null;
     }
 }

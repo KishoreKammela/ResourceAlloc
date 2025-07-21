@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
@@ -13,10 +14,15 @@ export function middleware(request: NextRequest) {
   }
 
   // If user is trying to access a protected page and is not logged in, redirect to login
-  if (!sessionToken && !publicRoutes.includes(pathname)) {
+  if (!sessionToken && !publicRoutes.includes(pathname) && !pathname.startsWith('/onboarding')) {
       return NextResponse.redirect(new URL('/login', request.url));
   }
   
+  // Allow unauthenticated access to onboarding
+  if (!sessionToken && pathname.startsWith('/onboarding')) {
+      return NextResponse.redirect(new URL('/login', request.url));
+  }
+
   return NextResponse.next();
 }
 

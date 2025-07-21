@@ -19,6 +19,7 @@ import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { AnimatePresence, motion } from "framer-motion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useAuth } from '@/contexts/auth-context';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -30,7 +31,12 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export default function ProfileCreator() {
+type ProfileCreatorProps = {
+  isOnboarding?: boolean;
+}
+
+export default function ProfileCreator({ isOnboarding = false }: ProfileCreatorProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +45,13 @@ export default function ProfileCreator() {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: { name: '', email: '', title: '', availability: 'Available', workMode: 'Remote' },
+    defaultValues: { 
+      name: '', 
+      email: user?.email || '', 
+      title: '', 
+      availability: 'Available', 
+      workMode: 'Remote' 
+    },
   });
 
   const addSkill = (skill: string) => {
@@ -60,9 +72,18 @@ export default function ProfileCreator() {
   };
 
   const handleSaveProfile: SubmitHandler<ProfileFormValues> = async (data) => {
+    if (!user?.uid) {
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: 'Could not find user information. Please try again.',
+        });
+        return;
+    }
+
     setIsSaving(true);
     try {
-        const result = await createEmployee({ ...data, skills });
+        const result = await createEmployee({ ...data, skills, uid: user.uid });
 
         if (result.error) {
             throw new Error(result.error);
@@ -73,7 +94,8 @@ export default function ProfileCreator() {
             description: `A new profile for ${result.employee?.name} has been successfully created.`,
         });
 
-        router.push('/employees');
+        router.push(isOnboarding ? '/dashboard' : '/employees');
+        router.refresh();
 
     } catch (error) {
          toast({
@@ -89,8 +111,12 @@ export default function ProfileCreator() {
   return (
     <Card className="max-w-4xl mx-auto shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Create Employee Profile</CardTitle>
-        <CardDescription>Manually enter the details for a new employee.</CardDescription>
+        <CardTitle className="font-headline text-2xl">
+          {isOnboarding ? "Welcome! Let's set up your profile." : "Create Employee Profile"}
+        </CardTitle>
+        <CardDescription>
+          {isOnboarding ? "Please fill in your professional details to get started." : "Manually enter the details for a new employee."}
+        </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSaveProfile)}>
@@ -116,7 +142,7 @@ export default function ProfileCreator() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. jane.doe@example.com" {...field} />
+                      <Input placeholder="e.g. jane.doe@example.com" {...field} disabled={isOnboarding} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
