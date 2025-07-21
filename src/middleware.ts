@@ -4,14 +4,16 @@ export function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get('firebase-session');
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ['/login', '/signup'];
-
-  if (!sessionToken && !publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  const authRoutes = ['/login', '/signup'];
+  
+  // If user is trying to access auth pages but is already logged in, redirect to dashboard
+  if (sessionToken && authRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if (sessionToken && publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // If user is trying to access a protected page and is not logged in, redirect to login
+  if (!sessionToken && !authRoutes.includes(pathname) && pathname !== '/') {
+      return NextResponse.redirect(new URL('/login', request.url));
   }
   
   return NextResponse.next();

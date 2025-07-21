@@ -1,7 +1,6 @@
 
 'use client';
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
@@ -10,20 +9,16 @@ import { Header } from '@/components/app/header';
 import { Nav } from '@/components/app/nav';
 import { AuthProvider } from '@/contexts/auth-context';
 import { usePathname } from 'next/navigation';
+import PublicLayout from './(public)/layout';
+import { MotionConfig } from 'framer-motion';
 
-// Metadata can still be exported from a client component layout in Next.js 13+
-// but it's generally better to keep layouts as Server Components if possible.
-// In this case, we need `usePathname`, so we make the component a client component.
-// export const metadata: Metadata = {
-//   title: 'ResourceAlloc',
-//   description: 'AI-Powered Resource Allocation and Management',
-// };
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isPublicPage = pathname === '/';
 
-  if (isAuthPage) {
+  if (isAuthPage || isPublicPage) {
     return <>{children}</>;
   }
 
@@ -64,7 +59,9 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased', 'bg-background')}>
         <AuthProvider>
-          <AppLayout>{children}</AppLayout>
+            <MotionConfig reducedMotion="user">
+                <AppLayout>{children}</AppLayout>
+            </MotionConfig>
         </AuthProvider>
         <Toaster />
       </body>

@@ -6,12 +6,10 @@ import { Home, Users, Briefcase, UserPlus, FolderPlus, BrainCircuit } from "luci
 
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Icons } from "@/components/icons";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { Separator } from "../ui/separator";
 
 const primaryNavItems = [
-  { href: "/", label: "Dashboard", icon: Home, tooltip: "Dashboard" },
+  { href: "/dashboard", label: "Dashboard", icon: Home, tooltip: "Dashboard" },
   { href: "/employees", label: "Employees", icon: Users, tooltip: "Employees" },
   { href: "/projects", label: "Projects", icon: Briefcase, tooltip: "Projects" },
 ];
