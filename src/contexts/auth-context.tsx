@@ -73,12 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setUser(null);
-          const isProtectedRoute =
-            !['/', '/login', '/signup'].includes(pathname) &&
-            !pathname.startsWith('/api');
-          if (isProtectedRoute) {
-            router.push('/login');
-          }
         }
       } catch (error) {
         console.error('Auth state change error:', error);
@@ -124,7 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
     setUser(null);
     setLoading(false);
-    router.push('/login');
   };
 
   const value = {
