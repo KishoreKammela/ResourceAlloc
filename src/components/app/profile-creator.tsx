@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -71,7 +72,7 @@ export default function ProfileCreator() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error Analyzing Resume',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {

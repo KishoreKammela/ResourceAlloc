@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -65,8 +66,8 @@ export default function ProjectCreator() {
     if (requiredSkills.length === 0) {
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: 'Please add at least one required skill.',
+            title: 'No Skills Specified',
+            description: 'Please add at least one required skill to find candidates.',
         });
         setIsLoading(false);
         return;
@@ -88,7 +89,7 @@ export default function ProjectCreator() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error Finding Candidates',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -77,7 +78,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error updating profile',
+        title: 'Error Updating Profile',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
@@ -101,7 +102,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     } catch (error) {
        toast({
         variant: 'destructive',
-        title: 'Error deleting profile',
+        title: 'Error Deleting Profile',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {

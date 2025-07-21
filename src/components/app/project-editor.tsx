@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -81,7 +82,7 @@ export default function ProjectEditor({ project, allEmployees }: { project: Proj
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error updating project',
+        title: 'Error Updating Project',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
@@ -105,7 +106,7 @@ export default function ProjectEditor({ project, allEmployees }: { project: Proj
     } catch (error) {
        toast({
         variant: 'destructive',
-        title: 'Error deleting project',
+        title: 'Error Deleting Project',
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
     } finally {
