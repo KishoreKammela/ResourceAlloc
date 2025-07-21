@@ -7,6 +7,12 @@ export type Employee = {
   availability: 'Available' | 'On Project';
   workMode: 'Remote' | 'Hybrid' | 'On-site';
   email?: string;
+  professionalSummary?: string;
+  location?: string;
+  compensation?: {
+    salary?: number;
+    billingRate?: number;
+  };
 };
 
-export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;
+export type UpdatableEmployeeData = Partial<Omit<Employee, 'id' | 'uid'>>;

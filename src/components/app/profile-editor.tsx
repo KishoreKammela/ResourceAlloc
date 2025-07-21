@@ -13,6 +13,9 @@ import {
   BadgePlus,
   Save,
   ArrowLeft,
+  DollarSign,
+  MapPin,
+  FileUp,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -58,6 +61,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import type { Employee } from '@/types/employee';
+import { Textarea } from '../ui/textarea';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -65,6 +69,10 @@ const profileFormSchema = z.object({
   title: z.string().min(2, 'Title must be at least 2 characters long.'),
   availability: z.enum(['Available', 'On Project']),
   workMode: z.enum(['Remote', 'Hybrid', 'On-site']),
+  professionalSummary: z.string().optional(),
+  location: z.string().optional(),
+  compensationSalary: z.coerce.number().optional(),
+  compensationBillingRate: z.coerce.number().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -85,15 +93,26 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
       title: employee.title,
       availability: employee.availability,
       workMode: employee.workMode,
+      professionalSummary: employee.professionalSummary || '',
+      location: employee.location || '',
+      compensationSalary: employee.compensation?.salary,
+      compensationBillingRate: employee.compensation?.billingRate,
     },
   });
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     setIsSaving(true);
     try {
+      const { compensationSalary, compensationBillingRate, ...restOfData } =
+        data;
+
       const result = await handleUpdateEmployee(employee.id, {
-        ...data,
+        ...restOfData,
         skills: finalSkills,
+        compensation: {
+          salary: compensationSalary,
+          billingRate: compensationBillingRate,
+        },
       });
       if (result.error) {
         throw new Error(result.error);
@@ -178,6 +197,9 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
+            <h3 className="font-headline text-lg font-semibold">
+              Basic Information
+            </h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -219,6 +241,23 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     <Input
                       placeholder="e.g. Senior Software Engineer"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. San Francisco, CA"
+                      {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -277,6 +316,75 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               />
             </div>
             <Separator />
+            <h3 className="font-headline text-lg font-semibold">
+              Professional Details
+            </h3>
+            <FormField
+              control={form.control}
+              name="professionalSummary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Professional Summary</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="A brief summary of professional experience, career objectives, and highlights."
+                      {...field}
+                      value={field.value || ''}
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="compensationSalary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Salary (USD)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="e.g. 120000"
+                          {...field}
+                          value={field.value || ''}
+                          className="pl-8"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="compensationBillingRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Rate (USD/hr)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="e.g. 150"
+                          {...field}
+                          value={field.value || ''}
+                          className="pl-8"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
             <div className="space-y-4">
               <h3 className="font-headline text-lg font-semibold">
                 Manage Skills
@@ -330,6 +438,23 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     Add Skill
                   </Button>
                 </div>
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-headline text-lg font-semibold">
+                Manage Documents
+              </h3>
+              <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  The ability to upload and manage documents is coming soon.
+                  This section will allow you to add resumes, certifications,
+                  and other files.
+                </p>
+                <Button type="button" disabled>
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Upload Documents
+                </Button>
               </div>
             </div>
           </CardContent>

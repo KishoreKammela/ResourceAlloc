@@ -20,6 +20,10 @@ import {
   Users,
   Building,
   Pencil,
+  DollarSign,
+  ClipboardList,
+  TrendingUp,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -27,6 +31,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import type { Employee } from '@/types/employee';
 import { Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { calculateProfileCompletion } from '@/lib/utils';
 
 type EmployeeProfilePageProps = {
   params: {
@@ -80,6 +86,17 @@ export default function EmployeeProfilePage({
     }
   };
 
+  const formatCurrency = (value?: number) => {
+    if (typeof value !== 'number') return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const profileCompletion = calculateProfileCompletion(employee);
+
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div className="flex items-start justify-between">
@@ -119,6 +136,19 @@ export default function EmployeeProfilePage({
           </Card>
           <Card>
             <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <TrendingUp className="mr-2 h-5 w-5" /> Profile Strength
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Progress value={profileCompletion} />
+              <p className="text-center text-sm text-muted-foreground">
+                {profileCompletion}% Complete
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle className="text-lg">Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
@@ -132,11 +162,50 @@ export default function EmployeeProfilePage({
                 {getWorkModeIcon(employee.workMode)}
                 <span>{employee.workMode}</span>
               </div>
+              {employee.location && (
+                <div className="flex items-center text-muted-foreground">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span>{employee.location}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Compensation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex items-center text-muted-foreground">
+                <DollarSign className="mr-2 h-4 w-4" />
+                <span>
+                  Salary: {formatCurrency(employee.compensation?.salary)}
+                </span>
+              </div>
+              <div className="flex items-center text-muted-foreground">
+                <DollarSign className="mr-2 h-4 w-4" />
+                <span>
+                  Rate: {formatCurrency(employee.compensation?.billingRate)}/hr
+                </span>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="space-y-8 md:col-span-2">
+          {employee.professionalSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <ClipboardList className="mr-2 h-5 w-5" /> About
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {employee.professionalSummary}
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Skills</CardTitle>
@@ -155,6 +224,24 @@ export default function EmployeeProfilePage({
                     {skill}
                   </Badge>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Documents</CardTitle>
+              <CardDescription>
+                Resumes, certificates, and other professional documents.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
+                <div className="space-y-2">
+                  <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Document management is coming soon.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
