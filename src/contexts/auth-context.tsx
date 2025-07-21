@@ -20,6 +20,7 @@ import { createUserProfile, getUserProfile } from '@/services/users.services';
 import type { AppUser, NewCompanyUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
 import { addCompany } from '@/services/companies.services';
+import { addEmployee, getEmployeeByUid } from '@/services/employees.services';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -51,7 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               emailVerified: firebaseUser.emailVerified,
             });
 
-            if (!userProfile.name) {
+            // Check if user has an associated employee profile.
+            // This is part of the onboarding check.
+            const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
+            if (!employeeProfile) {
               if (pathname !== '/onboarding/create-profile') {
                 router.push('/onboarding/create-profile');
               }
@@ -117,6 +121,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       await createUserProfile(firebaseUser.uid, userProfileData);
+
+      // 5. Create a corresponding employee profile
+      await addEmployee({
+        uid: firebaseUser.uid,
+        name: data.name,
+        title: data.designation,
+        email: data.email,
+        skills: [],
+        availability: 'Available',
+        workMode: 'Hybrid', // Default value
+      });
 
       // Set user state immediately to avoid waiting for onAuthStateChanged
       setUser({

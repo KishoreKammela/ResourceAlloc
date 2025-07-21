@@ -9,6 +9,8 @@ import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { useEffect } from 'react';
+import PublicLayout from '@/app/(public)/layout';
+import AppLayout from '@/app/(app)/layout';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -31,23 +33,20 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
     pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup');
-
   const isVerifyEmailPath = pathname.startsWith('/verify-email');
-  const isAppPath = !isPublicPath && !isVerifyEmailPath;
+  const isOnboardingPath = pathname.startsWith('/onboarding');
+  const isAppPath = !isPublicPath && !isVerifyEmailPath && !isOnboardingPath;
 
   useEffect(() => {
     if (loading) return;
 
     if (user) {
       if (!user.emailVerified && !isVerifyEmailPath) {
-        // If user is not verified and not on the verification page, redirect them there.
         router.push('/verify-email');
       } else if (user.emailVerified && (isPublicPath || isVerifyEmailPath)) {
-        // If user is verified and on a public/verification page, redirect to dashboard.
         router.push('/dashboard');
       }
     } else if (!user && isAppPath) {
-      // If no user and trying to access an app path, redirect to login.
       router.push('/login');
     }
   }, [
@@ -69,18 +68,27 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
   }
 
   // Determine which layout to render
-  if (!user) {
-    // For logged-out users, show public layout for public pages
-    return <>{children}</>;
+  if (!user && isPublicPath) {
+    return <PublicLayout>{children}</PublicLayout>;
   }
 
   if (user && !user.emailVerified) {
-    // For unverified users, only show the verification page
-    return isVerifyEmailPath ? <>{children}</> : null;
+    return isVerifyEmailPath ? <PublicLayout>{children}</PublicLayout> : null;
+  }
+  if (user && isOnboardingPath) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40">
+        {children}
+      </div>
+    );
   }
 
-  // For logged-in, verified users, show the app layout
-  return <>{children}</>;
+  if (user && user.emailVerified && !isOnboardingPath) {
+    return <AppLayout>{children}</AppLayout>;
+  }
+
+  // Fallback for logged-out users on non-public pages (e.g. verify, onboarding)
+  return <PublicLayout>{children}</PublicLayout>;
 }
 
 export default function RootLayout({
