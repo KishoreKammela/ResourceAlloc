@@ -9,16 +9,14 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  getAuth,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { app } from '@/lib/firebase/config';
+import { auth } from '@/lib/firebase/config';
 import { createUserProfile, getUserProfile } from '@/services/users.services';
-import { getEmployeeByUid } from '@/services/employees.services';
 import type { AppUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -31,8 +29,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const auth = getAuth(app);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -52,12 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Onboarding check
             if (
               userProfile.role === 'Employee' &&
-              pathname !== '/onboarding/create-profile'
+              !pathname.startsWith('/onboarding')
             ) {
-              const employeeProfile = await getEmployeeByUid(firebaseUser.uid);
-              if (!employeeProfile) {
-                router.push('/onboarding/create-profile');
-              }
+              // This part will be handled by page-level logic to avoid complexity here.
             }
           } else {
             // This could happen if user exists in Auth but not in Firestore.
@@ -65,7 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               await createUserProfile(firebaseUser.uid, firebaseUser.email);
               const newUserProfile = await getUserProfile(firebaseUser.uid);
-              setUser(newUserProfile);
+              if (newUserProfile) {
+                setUser(newUserProfile);
+                router.push('/onboarding/create-profile');
+              } else {
+                setUser(null);
+              }
             } catch (createError) {
               console.error('Failed to create user profile:', createError);
               setUser(null);
@@ -103,10 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         pass
       );
-      await createUserProfile(
-        userCredential.user.uid,
-        userCredential.user.email
-      );
+      // Profile creation is now handled by the onAuthStateChanged listener
+      return userCredential;
     } catch (error) {
       setLoading(false);
       throw error;
