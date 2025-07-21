@@ -47,7 +47,7 @@ This section covers the creation of detailed employee profiles and a system for 
 | **Profile Completion Tracking**  | `✅ Done`    | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page.                                                                                    |
 | **Profile Privacy Controls**     | `✅ Done`    | Implemented Firestore security rules to control field visibility and edit permissions based on user roles (e.g., Employee can edit own, Admin can edit all).                                       |
 | **Profile Verification System**  | `⚠️ Partial` | Added a `status` field to the Employee model. A more complex UI workflow for admin approvals of profile changes is scheduled for a later iteration.                                                |
-| **Profile Export Functionality** | `⏳ Pending` | **Next Up**: Requires a library (e.g., `jspdf`) and a new API route to generate a downloadable PDF of an employee's profile.                                                                       |
+| **Profile Export Functionality** | `✅ Done`    | Implemented a new API route (`/api/employees/[id]/export`) that uses `jspdf` to generate and download a PDF of an employee's profile. An "Export to PDF" button was added to the UI.               |
 | **Profile Comparison Tools**     | `⏳ Pending` | **Planned**: A significant UI feature that will be addressed after core profile functionality is complete. It will involve a selection mechanism on the main list and a dedicated comparison view. |
 
 ### 2.2 Document Management System

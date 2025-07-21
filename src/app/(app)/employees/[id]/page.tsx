@@ -24,6 +24,7 @@ import {
   ClipboardList,
   TrendingUp,
   FileText,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,12 @@ export default function EmployeeProfilePage({
           <p className="text-xl text-muted-foreground">{employee.title}</p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/api/employees/${employee.id}/export`} target="_blank">
+              <Download className="mr-2 h-4 w-4" />
+              Export to PDF
+            </Link>
+          </Button>
           {canEdit && (
             <Button asChild>
               <Link href={`/employees/${employee.id}/edit`}>
@@ -113,9 +120,6 @@ export default function EmployeeProfilePage({
               </Link>
             </Button>
           )}
-          <Button asChild variant="outline">
-            <Link href="/employees">Back to Employees</Link>
-          </Button>
         </div>
       </div>
 
