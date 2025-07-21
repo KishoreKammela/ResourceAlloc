@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -15,6 +16,7 @@ import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+import PublicLayout from './(public)/layout';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,17 +27,22 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  // If no user, or on a public page, or on onboarding, don't show the sidebar layout
+  // If no user is logged in, or if it's a public page or onboarding, show the public layout.
   if (!user || isPublicPage || pathname.startsWith('/onboarding')) {
-    return <>{children}</>;
+    // For onboarding, it doesn't use the public layout, but this condition works
+    if (pathname.startsWith('/onboarding')) {
+      return <>{children}</>;
+    }
+    return <PublicLayout>{children}</PublicLayout>;
   }
 
+  // If the user is logged in and on a private page, show the app layout with sidebar.
   return (
     <SidebarProvider>
       <Sidebar>
