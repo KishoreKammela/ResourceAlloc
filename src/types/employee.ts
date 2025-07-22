@@ -14,6 +14,9 @@ export type Employee = {
     salary?: number;
     billingRate?: number;
   };
+  yearsOfExperience?: number;
+  certifications?: string[];
+  industryExperience?: string[];
 };
 
 export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;

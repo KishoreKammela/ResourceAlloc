@@ -16,6 +16,9 @@ import {
   DollarSign,
   MapPin,
   FileUp,
+  Award,
+  BarChart,
+  Briefcase,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -73,6 +76,7 @@ const profileFormSchema = z.object({
   location: z.string().optional(),
   compensationSalary: z.coerce.number().optional(),
   compensationBillingRate: z.coerce.number().optional(),
+  yearsOfExperience: z.coerce.number().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -82,8 +86,16 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [finalSkills, setFinalSkills] = useState<string[]>(employee.skills);
+  const [skills, setSkills] = useState<string[]>(employee.skills || []);
   const [newSkill, setNewSkill] = useState('');
+  const [certifications, setCertifications] = useState<string[]>(
+    employee.certifications || []
+  );
+  const [newCertification, setNewCertification] = useState('');
+  const [industries, setIndustries] = useState<string[]>(
+    employee.industryExperience || []
+  );
+  const [newIndustry, setNewIndustry] = useState('');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -97,6 +109,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
       location: employee.location || '',
       compensationSalary: employee.compensation?.salary,
       compensationBillingRate: employee.compensation?.billingRate,
+      yearsOfExperience: employee.yearsOfExperience,
     },
   });
 
@@ -108,7 +121,9 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
 
       const result = await handleUpdateEmployee(employee.id, {
         ...restOfData,
-        skills: finalSkills,
+        skills,
+        certifications,
+        industryExperience: industries,
         compensation: {
           salary: compensationSalary,
           billingRate: compensationBillingRate,
@@ -166,26 +181,26 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     }
   };
 
-  const addSkill = (skill: string) => {
-    const trimmedSkill = skill.trim();
-    if (trimmedSkill && !finalSkills.includes(trimmedSkill)) {
-      setFinalSkills((prev) => [...prev, trimmedSkill]);
+  const createTagHandler = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    currentTags: string[]
+  ) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue && !currentTags.includes(trimmedValue)) {
+      setter((prev) => [...prev, trimmedValue]);
     }
   };
 
-  const removeSkill = (skillToRemove: string) => {
-    setFinalSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
-  };
-
-  const handleAddNewSkill = () => {
-    if (newSkill.trim()) {
-      addSkill(newSkill.trim());
-      setNewSkill('');
-    }
+  const removeTagHandler = (
+    tagToRemove: string,
+    setter: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setter((prev) => prev.filter((tag) => tag !== tagToRemove));
   };
 
   return (
-    <Card className="mx-auto max-w-4xl shadow-lg">
+    <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">
           Edit Employee Profile
@@ -337,6 +352,24 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="yearsOfExperience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Years of Experience</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 5"
+                      {...field}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -392,7 +425,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               <div>
                 <FormLabel>Current Skills</FormLabel>
                 <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                  {finalSkills.map((skill) => (
+                  {skills.map((skill) => (
                     <Badge
                       key={skill}
                       variant="default"
@@ -401,14 +434,14 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                       {skill}
                       <button
                         type="button"
-                        onClick={() => removeSkill(skill)}
+                        onClick={() => removeTagHandler(skill, setSkills)}
                         className="rounded-full p-0.5 hover:bg-black/10"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
-                  {finalSkills.length === 0 && (
+                  {skills.length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       No skills assigned. Add some below.
                     </p>
@@ -425,14 +458,18 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleAddNewSkill();
+                        createTagHandler(newSkill, setSkills, skills);
+                        setNewSkill('');
                       }
                     }}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleAddNewSkill}
+                    onClick={() => {
+                      createTagHandler(newSkill, setSkills, skills);
+                      setNewSkill('');
+                    }}
                   >
                     <BadgePlus className="mr-2 h-4 w-4" />
                     Add Skill
@@ -440,6 +477,111 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                 </div>
               </div>
             </div>
+
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-headline text-lg font-semibold">
+                Certifications
+              </h3>
+              <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
+                {certifications.map((cert) => (
+                  <Badge
+                    key={cert}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    {cert}
+                    <button
+                      type="button"
+                      onClick={() => removeTagHandler(cert, setCertifications)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newCertification}
+                  onChange={(e) => setNewCertification(e.target.value)}
+                  placeholder="e.g. AWS Certified Developer"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      createTagHandler(
+                        newCertification,
+                        setCertifications,
+                        certifications
+                      );
+                      setNewCertification('');
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    createTagHandler(
+                      newCertification,
+                      setCertifications,
+                      certifications
+                    );
+                    setNewCertification('');
+                  }}
+                >
+                  <Award className="mr-2 h-4 w-4" /> Add
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="font-headline text-lg font-semibold">
+                Industry Experience
+              </h3>
+              <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
+                {industries.map((industry) => (
+                  <Badge
+                    key={industry}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    {industry}
+                    <button
+                      type="button"
+                      onClick={() => removeTagHandler(industry, setIndustries)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newIndustry}
+                  onChange={(e) => setNewIndustry(e.target.value)}
+                  placeholder="e.g. FinTech, Healthcare"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      createTagHandler(newIndustry, setIndustries, industries);
+                      setNewIndustry('');
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    createTagHandler(newIndustry, setIndustries, industries);
+                    setNewIndustry('');
+                  }}
+                >
+                  <Briefcase className="mr-2 h-4 w-4" /> Add
+                </Button>
+              </div>
+            </div>
+
             <Separator />
             <div className="space-y-4">
               <h3 className="font-headline text-lg font-semibold">
