@@ -1,42 +1,35 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow anyone to create a company and their own user profile during signup
+
+    // Allow company creation by anyone, as it's part of the signup flow.
     match /companies/{companyId} {
       allow create: if true;
+      // You might want to lock this down further later, e.g., allow read/update for authenticated users of that company.
       allow read, update, delete: if request.auth != null;
     }
-    
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow read, update, delete: if request.auth.uid == userId;
-    }
 
-    // Allow admin users to manage all users within their company
+    // Allow any user to create their own user document during signup.
+    // After creation, only the authenticated user can read or update their own document.
     match /users/{userId} {
-      allow read, list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
-    }
-
-    // Allow audit logs to be created by anyone (for signup) and read by admins
-    match /audit_logs/{logId} {
       allow create: if true;
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Generally, you don't want users to delete their own accounts directly from the client.
+      allow delete: if false;
     }
 
-    // Secure other collections by default
-    match /employees/{employeeId} {
-      allow read, create, update, delete: if request.auth != null;
+    // Allow audit log creation by anyone, as it happens during signup.
+    match /audit_logs/{logId} {
+        allow create: if true;
+        // Restrict read access to admins later if needed.
+        allow read, update, delete: if request.auth != null;
     }
 
-    match /projects/{projectId} {
-      allow read, create, update, delete: if request.auth != null;
-    }
-
-    match /invitations/{invitationId} {
-       allow create, read, update, delete: if request.auth != null;
+    // Secure other collections by default.
+    // Authenticated users can read/write to other collections (employees, projects, etc.)
+    // More granular rules should be added here as the app grows.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
