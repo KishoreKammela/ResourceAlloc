@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: data.name,
         companyId: newCompany.id,
         role: 'Super Admin' as const,
-        onboardingCompleted: false, // Start onboarding
+        onboardingCompleted: true, // Super Admin doesn't need to create a profile
       };
 
       await createUserProfile(firebaseUser.uid, userProfileData);
