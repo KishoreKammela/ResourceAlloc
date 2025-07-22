@@ -106,7 +106,7 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="w-full">
-        <div className="group/menu-item flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-2">
+        <div className="group/menu-item flex w-full items-center justify-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:p-2">
           <Avatar className="h-7 w-7">
             <AvatarImage src={user.avatarUrl} alt="User Avatar" />
             <AvatarFallback>
@@ -115,7 +115,9 @@ function UserMenu() {
           </Avatar>
           <div className="flex flex-col items-start truncate group-data-[collapsible=icon]:hidden">
             <span className="font-semibold">{user.name}</span>
-            <span className="text-xs text-muted-foreground">{user.email}</span>
+            <span className="text-xs text-muted-foreground group-hover:text-sidebar-accent-foreground">
+              {user.email}
+            </span>
           </div>
         </div>
       </DropdownMenuTrigger>
