@@ -1,24 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Loader2,
-  Plus,
   X,
-  User,
   Trash2,
   BadgePlus,
   Save,
   ArrowLeft,
   DollarSign,
-  MapPin,
   FileUp,
   Award,
-  BarChart,
   Briefcase,
+  Download,
+  File,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -63,8 +61,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { Employee } from '@/types/employee';
+import type { Employee, EmployeeDocument } from '@/types/employee';
 import { Textarea } from '../ui/textarea';
+import { uploadFile } from '@/lib/firebase/storage';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -86,6 +85,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [skills, setSkills] = useState<string[]>(employee.skills || []);
   const [newSkill, setNewSkill] = useState('');
   const [certifications, setCertifications] = useState<string[]>(
@@ -96,6 +96,10 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     employee.industryExperience || []
   );
   const [newIndustry, setNewIndustry] = useState('');
+  const [documents, setDocuments] = useState<EmployeeDocument[]>(
+    employee.documents || []
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -124,6 +128,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
         skills,
         certifications,
         industryExperience: industries,
+        documents,
         compensation: {
           salary: compensationSalary,
           billingRate: compensationBillingRate,
@@ -179,6 +184,47 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const uploadPath = `documents/${employee.companyId}/${employee.id}`;
+      const downloadURL = await uploadFile(file, uploadPath);
+
+      const newDocument: EmployeeDocument = {
+        name: file.name,
+        url: downloadURL,
+        type: file.type,
+        size: file.size,
+      };
+
+      setDocuments((prev) => [...prev, newDocument]);
+      toast({
+        title: 'Document Uploaded',
+        description: `${file.name} has been successfully added.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: 'There was a problem uploading your document.',
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeDocument = (urlToRemove: string) => {
+    setDocuments((prev) => prev.filter((doc) => doc.url !== urlToRemove));
   };
 
   const createTagHandler = (
@@ -581,21 +627,69 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                 </Button>
               </div>
             </div>
-
             <Separator />
             <div className="space-y-4">
               <h3 className="font-headline text-lg font-semibold">
                 Manage Documents
               </h3>
+              <div className="space-y-3">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.url}
+                    className="flex items-center justify-between rounded-md border p-2 pl-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <File className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(doc.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button asChild variant="ghost" size="icon">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeDocument(doc.url)}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center">
                 <p className="mb-4 text-sm text-muted-foreground">
-                  The ability to upload and manage documents is coming soon.
-                  This section will allow you to add resumes, certifications,
-                  and other files.
+                  Upload resumes, certifications, and other files.
                 </p>
-                <Button type="button" disabled>
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Upload Documents
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpg,.png"
+                />
+                <Button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileUp className="mr-2 h-4 w-4" />
+                  )}
+                  {isUploading ? 'Uploading...' : 'Upload Document'}
                 </Button>
               </div>
             </div>

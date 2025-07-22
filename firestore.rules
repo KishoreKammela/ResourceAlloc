@@ -1,34 +1,68 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow company creation by anyone, as it's part of the signup flow.
+    // Helper function to check if a user belongs to a specific company
+    function userBelongsToCompany(companyId) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+    }
+
+    // Helper function to check user role
+    function isUserRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isAtLeastAdmin() {
+      return isUserRole('Admin') || isUserRole('Super Admin');
+    }
+
+    // Companies collection
     match /companies/{companyId} {
-      allow create: if true;
-      // You might want to lock this down further later, e.g., allow read/update for authenticated users of that company.
-      allow read, update, delete: if request.auth != null;
+      allow read, write: if request.auth != null; // Simplified for now, should be tightened later
     }
 
-    // Allow any user to create their own user document during signup.
-    // After creation, only the authenticated user can read or update their own document.
+    // Users collection
     match /users/{userId} {
-      allow create: if true;
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      // Generally, you don't want users to delete their own accounts directly from the client.
-      allow delete: if false;
+      allow create: if request.auth != null; // Allow any authenticated user to create their own profile during signup
+      allow read, update: if request.auth.uid == userId; // Users can only read/update their own profile
+      allow delete: if false; // Nobody can delete user profiles
     }
 
-    // Allow audit log creation by anyone, as it happens during signup.
+    // Employees collection
+    match /employees/{employeeId} {
+      allow create: if request.auth != null && userBelongsToCompany(request.resource.data.companyId);
+      allow read, update, delete: if request.auth != null && userBelongsToCompany(resource.data.companyId);
+    }
+
+    // Projects collection
+    match /projects/{projectId} {
+      allow create: if request.auth != null && userBelongsToCompany(request.resource.data.companyId);
+      allow read, update, delete: if request.auth != null && userBelongsToCompany(resource.data.companyId);
+    }
+    
+    // Clients collection
+    match /clients/{clientId} {
+      allow create: if request.auth != null && userBelongsToCompany(request.resource.data.companyId);
+      allow read, update, delete: if request.auth != null && userBelongsToCompany(resource.data.companyId);
+    }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+        allow read: if true; // Publicly readable for the token query
+        allow create: if request.auth != null && isAtLeastAdmin() && userBelongsToCompany(request.resource.data.companyId);
+        allow update: if request.auth != null; // Allow user to accept invitation
+    }
+    
+    // Audit logs collection
     match /audit_logs/{logId} {
-        allow create: if true;
-        // Restrict read access to admins later if needed.
-        allow read, update, delete: if request.auth != null;
+        allow create: if request.auth != null;
+        allow read: if false; // Admins could be given read access later if needed
     }
 
-    // Secure other collections by default.
-    // Authenticated users can read/write to other collections (employees, projects, etc.)
-    // More granular rules should be added here as the app grows.
-    match /{document=**} {
+    // Files collection - Matches any file in any subdirectory of 'files'
+    match /files/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
   }

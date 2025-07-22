@@ -163,11 +163,12 @@ export default function ProfileCreator({
   };
 
   const processForm: SubmitHandler<ProfileFormValues> = async (data) => {
-    if (!user?.uid) {
+    if (!user?.uid || !user.companyId) {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: 'Could not find user information. Please try again.',
+        description:
+          'Could not find user or company information. Please try again.',
       });
       return;
     }
@@ -179,26 +180,26 @@ export default function ProfileCreator({
         skills,
         status: 'Approved',
         uid: user.uid,
+        companyId: user.companyId,
       });
 
       if (result.error || !result.employee) {
         throw new Error(result.error || 'Failed to create employee profile.');
       }
 
-      // Safe to access result.employee now
       const createdEmployee = result.employee;
 
       if (isOnboarding) {
         await updateUserProfile(user.uid, {
           onboardingCompleted: true,
-          employeeId: createdEmployee?.employee?.id,
+          employeeId: createdEmployee.id,
         });
         await refreshUser();
       }
 
       toast({
         title: 'Profile Created',
-        description: `A new profile for ${createdEmployee?.employee?.name} has been successfully created.`,
+        description: `A new profile for ${createdEmployee.name} has been successfully created.`,
       });
 
       router.push(isOnboarding ? '/dashboard' : '/employees');
@@ -241,7 +242,7 @@ export default function ProfileCreator({
   };
 
   return (
-    <Card className="mx-auto max-w-4xl shadow-lg">
+    <Card className="mx-auto w-full max-w-4xl shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">
           {isOnboarding

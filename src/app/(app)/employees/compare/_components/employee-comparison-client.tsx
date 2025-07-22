@@ -16,9 +16,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
 
-export default function EmployeeComparisonView() {
+export default function EmployeeComparisonClient() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,11 @@ export default function EmployeeComparisonView() {
 
   useEffect(() => {
     async function fetchEmployees() {
+      if (!user || !user.companyId) {
+        setLoading(false);
+        return;
+      }
+
       if (employeeIds.length === 0) {
         setError('No employees selected for comparison.');
         setLoading(false);
@@ -40,7 +47,7 @@ export default function EmployeeComparisonView() {
       setLoading(true);
       try {
         const fetchedEmployees = await Promise.all(
-          employeeIds.map((id) => getEmployeeById(id))
+          employeeIds.map((id) => getEmployeeById(id, user.companyId!))
         );
         const validEmployees = fetchedEmployees.filter(
           (emp): emp is Employee => emp !== null
@@ -58,7 +65,7 @@ export default function EmployeeComparisonView() {
     }
 
     fetchEmployees();
-  }, [employeeIds]);
+  }, [employeeIds, user]);
 
   const allSkills = useMemo(() => {
     const skillSet = new Set<string>();

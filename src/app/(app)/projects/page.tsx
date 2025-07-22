@@ -26,12 +26,14 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     async function fetchProjects() {
-      const projs = await getProjects();
-      setProjects(projs);
+      if (user && user.companyId) {
+        const projs = await getProjects(user.companyId);
+        setProjects(projs);
+      }
       setLoading(false);
     }
     fetchProjects();
-  }, []);
+  }, [user]);
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {

@@ -21,12 +21,14 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     async function fetchEmployees() {
-      const emps = await getEmployees();
-      setEmployees(emps);
+      if (user && user.companyId) {
+        const emps = await getEmployees(user.companyId);
+        setEmployees(emps);
+      }
       setLoading(false);
     }
     fetchEmployees();
-  }, []);
+  }, [user]);
 
   const canAddEmployee = user?.role === 'Admin' || user?.role === 'Super Admin';
 

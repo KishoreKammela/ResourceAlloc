@@ -6,17 +6,24 @@ import { Loader2 } from 'lucide-react';
 import SkillGapAnalyzer from '@/components/app/skill-gap-analyzer';
 import { getEmployees } from '@/services/employees.services';
 import { getProjects } from '@/services/projects.services';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function AnalysisPage() {
+  const { user } = useAuth();
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
+      if (!user || !user.companyId) {
+        setLoading(false);
+        return;
+      }
+
       const [employees, projects] = await Promise.all([
-        getEmployees(),
-        getProjects(),
+        getEmployees(user.companyId),
+        getProjects(user.companyId),
       ]);
 
       setRequiredSkills([
@@ -27,7 +34,7 @@ export default function AnalysisPage() {
     }
 
     fetchData();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (

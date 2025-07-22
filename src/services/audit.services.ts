@@ -8,6 +8,7 @@ type AuditLog = {
   userId: string;
   details: string;
   timestamp?: any;
+  companyId?: string; // Optional for system-level vs company-level events
 };
 
 export async function addAuditLog(logData: Omit<AuditLog, 'timestamp'>) {

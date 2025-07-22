@@ -36,6 +36,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { findCandidates, createProject } from '@/app/actions';
@@ -45,10 +52,13 @@ import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import type { Employee } from '@/types/employee';
 import { getEmployees } from '@/services/employees.services';
+import { getClients } from '@/services/clients.services';
+import { useAuth } from '@/contexts/auth-context';
+import type { Client } from '@/types/client';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, 'Project name must be at least 2 characters long.'),
-  client: z.string().min(2, 'Client name must be at least 2 characters long.'),
+  clientId: z.string().optional(),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -57,11 +67,13 @@ type Candidate = SuggestCandidatesOutput['candidates'][0];
 type CandidatesResult = { candidates: Candidate[] };
 
 export default function ProjectCreator() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isFindingCandidates, setIsFindingCandidates] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [candidatesResult, setCandidatesResult] =
     useState<CandidatesResult | null>(null);
   const [requiredSkills, setRequiredSkills] = useState<string[]>([
@@ -73,22 +85,38 @@ export default function ProjectCreator() {
   const [selectedTeam, setSelectedTeam] = useState<Employee[]>([]);
 
   useEffect(() => {
-    async function fetchEmployees() {
-      const employees = await getEmployees();
-      setAllEmployees(employees);
+    async function fetchData() {
+      if (user && user.companyId) {
+        const [employees, clients] = await Promise.all([
+          getEmployees(user.companyId),
+          getClients(user.companyId),
+        ]);
+        setAllEmployees(employees);
+        setClients(clients);
+      }
     }
-    fetchEmployees();
-  }, []);
+    fetchData();
+  }, [user]);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
-    defaultValues: { name: '', client: '' },
+    defaultValues: { name: '', clientId: 'no-client' },
   });
 
-  const handleFindCandidates: SubmitHandler<ProjectFormValues> = async (
-    data
-  ) => {
-    setIsLoading(true);
+  const handleFindCandidates = async () => {
+    if (!user?.companyId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not determine your company.',
+      });
+      return;
+    }
+
+    const isValid = await form.trigger();
+    if (!isValid) return;
+
+    setIsFindingCandidates(true);
     setCandidatesResult(null);
     setSelectedTeam([]);
 
@@ -99,12 +127,15 @@ export default function ProjectCreator() {
         description:
           'Please add at least one required skill to find candidates.',
       });
-      setIsLoading(false);
+      setIsFindingCandidates(false);
       return;
     }
 
     try {
-      const result = await findCandidates(requiredSkills);
+      const result = await findCandidates({
+        requiredSkills,
+        companyId: user.companyId,
+      });
 
       if (result.error) {
         throw new Error(result.error);
@@ -126,8 +157,73 @@ export default function ProjectCreator() {
             : 'An unexpected error occurred.',
       });
     } finally {
-      setIsLoading(false);
+      setIsFindingCandidates(false);
     }
+  };
+
+  const saveProject = async (team: Employee[]) => {
+    if (!user || !user.companyId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Cannot save project without a company context.',
+      });
+      return false;
+    }
+    setIsCreatingProject(true);
+    try {
+      const { name, clientId } = form.getValues();
+      const selectedClient =
+        clientId === 'no-client'
+          ? undefined
+          : clients.find((c) => c.id === clientId);
+
+      const result = await createProject({
+        name,
+        clientId: selectedClient?.id,
+        clientName: selectedClient?.name,
+        requiredSkills,
+        team: team,
+        status: 'Planning',
+        timeline: 'TBD',
+        description: 'No description provided.',
+        companyId: user.companyId,
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      toast({
+        title: 'Project Created',
+        description: `Project "${result.project?.name}" has been successfully created.`,
+      });
+
+      router.push('/projects');
+      return true;
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Saving Project',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred.',
+      });
+      return false;
+    } finally {
+      setIsCreatingProject(false);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) return;
+    await saveProject([]); // Save with empty team
+  };
+
+  const handleCreateProjectWithTeam = async () => {
+    await saveProject(selectedTeam);
   };
 
   const addSkill = (skill: string) => {
@@ -155,8 +251,8 @@ export default function ProjectCreator() {
     setCandidatesResult(null);
     setRequiredSkills(['React', 'Node.js', 'TypeScript']);
     setSelectedTeam([]);
-    setIsLoading(false);
-    setIsSaving(false);
+    setIsFindingCandidates(false);
+    setIsCreatingProject(false);
   };
 
   const toggleCandidateSelection = (candidate: Candidate) => {
@@ -176,46 +272,8 @@ export default function ProjectCreator() {
     });
   };
 
-  const handleSaveProject = async () => {
-    setIsSaving(true);
-    try {
-      const { name, client } = form.getValues();
-      const result = await createProject({
-        name,
-        client,
-        requiredSkills,
-        team: selectedTeam,
-        status: 'Planning',
-        timeline: 'TBD',
-        description: 'No description provided.',
-      });
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      toast({
-        title: 'Project Created',
-        description: `Project "${result.project?.name}&quot; has been successfully created.`,
-      });
-
-      router.push('/projects');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Saving Project',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
-    <Card className="mx-auto max-w-4xl shadow-lg">
+    <Card className="mx-auto w-full max-w-4xl shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">
           Create Project & Find Talent
@@ -226,7 +284,12 @@ export default function ProjectCreator() {
         </CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFindCandidates)}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleFindCandidates();
+          }}
+        >
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
@@ -247,13 +310,28 @@ export default function ProjectCreator() {
               />
               <FormField
                 control={form.control}
-                name="client"
+                name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Future Gadget Labs" {...field} />
-                    </FormControl>
+                    <FormLabel>Client (Optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign to a client" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="no-client">None</SelectItem>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -309,9 +387,27 @@ export default function ProjectCreator() {
               </Button>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button type="submit" disabled={isLoading || !!candidatesResult}>
-              {isLoading ? (
+          <CardFooter className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCreateProject}
+              disabled={isFindingCandidates || isCreatingProject}
+            >
+              {isCreatingProject && !isFindingCandidates ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              Create Project
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                isFindingCandidates || isCreatingProject || !!candidatesResult
+              }
+            >
+              {isFindingCandidates ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Search className="mr-2 h-4 w-4" />
@@ -415,15 +511,21 @@ export default function ProjectCreator() {
               )}
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="ghost" onClick={resetFlow} disabled={isSaving}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={resetFlow}
+                disabled={isCreatingProject}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
               <Button
-                onClick={handleSaveProject}
-                disabled={isSaving || selectedTeam.length === 0}
+                type="button"
+                onClick={handleCreateProjectWithTeam}
+                disabled={isCreatingProject || selectedTeam.length === 0}
               >
-                {isSaving ? (
+                {isCreatingProject ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Plus className="mr-2 h-4 w-4" />

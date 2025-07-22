@@ -17,6 +17,9 @@ const SuggestCandidatesInputSchema = z.object({
   requiredSkills: z
     .array(z.string())
     .describe('A list of skills required for the project.'),
+  companyId: z
+    .string()
+    .describe('The ID of the company to search for employees within.'),
 });
 export type SuggestCandidatesInput = z.infer<
   typeof SuggestCandidatesInputSchema
@@ -51,12 +54,12 @@ export type SuggestCandidatesOutput = z.infer<
 const getAllEmployeesTool = ai.defineTool(
   {
     name: 'getAllEmployees',
-    description: 'Get a list of all employees and their skills.',
-    inputSchema: z.object({}),
+    description: 'Get a list of all employees and their skills for a company.',
+    inputSchema: z.object({ companyId: z.string() }),
     outputSchema: z.array(z.custom<Employee>()),
   },
-  async () => {
-    return await getEmployees();
+  async ({ companyId }) => {
+    return await getEmployees(companyId);
   }
 );
 
@@ -75,7 +78,7 @@ const prompt = ai.definePrompt({
   
   A new project has the following skill requirements: {{#each requiredSkills}} {{this}} {{/each}}.
 
-  Your task is to assemble a balanced and effective team from the company's list of employees. Use the provided tool to get the list of all employees.
+  Your task is to assemble a balanced and effective team from the company's list of employees. Use the provided tool to get the list of all employees for company ID: {{companyId}}.
 
   Analyze the list and suggest a team of up to 5 members. Your suggestions should not just be based on individual skill matches, but also on creating a well-rounded team. Consider a good mix of roles (e.g., senior and junior developers, designers, etc.) based on their titles.
 

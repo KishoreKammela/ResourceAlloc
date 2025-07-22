@@ -1,30 +1,65 @@
 // /src/app/api/employees/[id]/export/route.ts
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { getEmployeeById } from '@/services/employees.services';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { CellHookData } from 'jspdf-autotable';
+import { auth as adminAuth } from 'firebase-admin';
+import { initAdminApp } from '@/lib/firebase/admin-config';
+import { getUserProfile } from '@/services/users.services';
 
 // Extend jsPDF with autoTable - this is how the plugin is used
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
 
+async function getAuthenticatedUser(request: NextRequest) {
+  const authorization = request.headers.get('Authorization');
+  if (authorization?.startsWith('Bearer ')) {
+    const idToken = authorization.split('Bearer ')[1];
+    try {
+      await initAdminApp();
+      const decodedToken = await adminAuth().verifyIdToken(idToken);
+      return decodedToken;
+    } catch (error) {
+      console.error('Error verifying auth token:', error);
+      return null;
+    }
+  }
+  return null;
+}
+
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const employeeId = params.id;
+  const decodedToken = await getAuthenticatedUser(request);
+
+  if (!decodedToken) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
 
   if (!employeeId) {
     return new NextResponse('Employee ID is required', { status: 400 });
   }
 
   try {
-    const employee = await getEmployeeById(employeeId);
+    const userProfile = await getUserProfile(decodedToken.uid);
+    const companyId = userProfile?.companyId;
+
+    if (!companyId) {
+      return new NextResponse('User does not belong to a company', {
+        status: 403,
+      });
+    }
+
+    const employee = await getEmployeeById(employeeId, companyId);
 
     if (!employee) {
-      return new NextResponse('Employee not found', { status: 404 });
+      return new NextResponse('Employee not found or access denied', {
+        status: 404,
+      });
     }
 
     const doc = new jsPDF() as jsPDFWithAutoTable;

@@ -17,6 +17,9 @@ const GenerateProjectReportInputSchema = z.object({
   projectId: z
     .string()
     .describe('The ID of the project to generate a report for.'),
+  companyId: z
+    .string()
+    .describe('The ID of the company the project belongs to.'),
 });
 export type GenerateProjectReportInput = z.infer<
   typeof GenerateProjectReportInputSchema
@@ -49,11 +52,11 @@ const getProjectByIdTool = ai.defineTool(
     name: 'getProjectById',
     description:
       'Get the full details of a project by its ID, including assigned team members.',
-    inputSchema: z.object({ id: z.string() }),
+    inputSchema: z.object({ id: z.string(), companyId: z.string() }),
     outputSchema: z.custom<Project>(),
   },
-  async ({ id }) => {
-    const project = await getProjectById(id);
+  async ({ id, companyId }) => {
+    const project = await getProjectById(id, companyId);
     if (!project) {
       throw new Error('Project not found');
     }
@@ -74,7 +77,7 @@ const prompt = ai.definePrompt({
   tools: [getProjectByIdTool],
   prompt: `You are an expert Project Manager. Your task is to generate a concise and insightful status report for a project.
   
-  First, use the provided tool to get the complete details for the project with ID: {{projectId}}.
+  First, use the provided tool to get the complete details for the project with ID: {{projectId}} for company ID: {{companyId}}.
 
   Then, based on the project's status, description, timeline, and assigned team, generate a report covering the following areas:
   - summary: A brief overview of the project's health. Is it on track? What's the general sentiment?

@@ -14,6 +14,7 @@ import {
   User,
   Shield,
   Users2,
+  Building,
 } from 'lucide-react';
 
 import {
@@ -38,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 const primaryNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, tooltip: 'Dashboard' },
   { href: '/employees', label: 'Employees', icon: Users, tooltip: 'Employees' },
+  { href: '/clients', label: 'Clients', icon: Building, tooltip: 'Clients' },
   {
     href: '/projects',
     label: 'Projects',
@@ -59,12 +61,14 @@ const secondaryNavItems = [
     label: 'Add Employee',
     icon: UserPlus,
     tooltip: 'Add New Employee',
+    adminOnly: true,
   },
   {
     href: '/projects/new',
     label: 'New Project',
     icon: FolderPlus,
     tooltip: 'Create New Project',
+    adminOnly: true,
   },
 ];
 
@@ -172,6 +176,10 @@ export function Nav() {
     (item) => !item.adminOnly || isUserAdmin
   );
 
+  const visibleSecondaryNavItems = secondaryNavItems.filter(
+    (item) => !item.adminOnly || isUserAdmin
+  );
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto pt-2">
@@ -199,28 +207,30 @@ export function Nav() {
             </SidebarMenu>
           </div>
           <Separator className="bg-sidebar-border" />
-          <div>
-            <p className="mb-2 px-2 text-xs font-semibold text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-              Quick Actions
-            </p>
-            <SidebarMenu className="space-y-1">
-              {secondaryNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href}
-                    className="justify-start"
-                    tooltip={item.tooltip}
-                  >
-                    <Link href={item.href}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </div>
+          {visibleSecondaryNavItems.length > 0 && (
+            <div>
+              <p className="mb-2 px-2 text-xs font-semibold text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+                Quick Actions
+              </p>
+              <SidebarMenu className="space-y-1">
+                {visibleSecondaryNavItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.href}
+                      className="justify-start"
+                      tooltip={item.tooltip}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </div>
+          )}
           <Separator className="bg-sidebar-border" />
           <div>
             <p className="mb-2 px-2 text-xs font-semibold text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">

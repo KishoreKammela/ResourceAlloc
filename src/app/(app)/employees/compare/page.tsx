@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import EmployeeComparisonView from '@/components/app/employee-comparison-view';
+import EmployeeComparisonClient from './_components/employee-comparison-client';
 import { Loader2 } from 'lucide-react';
 
 function ComparePage() {
@@ -13,7 +13,7 @@ function ComparePage() {
         </div>
       }
     >
-      <EmployeeComparisonView />
+      <EmployeeComparisonClient />
     </Suspense>
   );
 }

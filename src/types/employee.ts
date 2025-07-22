@@ -1,3 +1,10 @@
+export type EmployeeDocument = {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+};
+
 export type Employee = {
   id: string;
   name: string;
@@ -17,6 +24,8 @@ export type Employee = {
   yearsOfExperience?: number;
   certifications?: string[];
   industryExperience?: string[];
+  documents?: EmployeeDocument[];
+  companyId: string; // Each employee must belong to a company
 };
 
 export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;

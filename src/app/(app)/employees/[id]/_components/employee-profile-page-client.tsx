@@ -2,18 +2,11 @@
 
 import { notFound } from 'next/navigation';
 import { getEmployeeById } from '@/services/employees.services';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   Briefcase,
-  Calendar,
   MapPin,
   CheckCircle,
   Wifi,
@@ -28,42 +21,63 @@ import {
   Award,
   BarChart,
   BrainCircuit,
+  File,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import type { Employee } from '@/types/employee';
-import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { calculateProfileCompletion } from '@/lib/utils';
-
-type EmployeeProfilePageClientProps = {
-  employeeId: string;
-};
+import EmployeeProfileSkeleton from './employee-profile-skeleton';
+import { auth } from '@/lib/firebase/config';
 
 export default function EmployeeProfilePageClient({
   employeeId,
-}: EmployeeProfilePageClientProps) {
+}: {
+  employeeId: string;
+}) {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportUrl, setExportUrl] = useState('');
 
   useEffect(() => {
     const fetchEmployee = async () => {
-      const emp = await getEmployeeById(employeeId);
-      setEmployee(emp);
+      if (user && user.companyId) {
+        const emp = await getEmployeeById(employeeId, user.companyId);
+        setEmployee(emp);
+      }
       setLoading(false);
     };
     fetchEmployee();
-  }, [employeeId]);
+  }, [employeeId, user]);
+
+  useEffect(() => {
+    const generateExportUrl = async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        try {
+          const token = await currentUser.getIdToken();
+          setExportUrl(
+            `/api/employees/${employeeId}/export?token=${encodeURIComponent(
+              token
+            )}`
+          );
+        } catch (error) {
+          console.error('Error getting auth token for export:', error);
+        }
+      }
+    };
+
+    if (employee) {
+      generateExportUrl();
+    }
+  }, [employee, employeeId]);
 
   if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <EmployeeProfileSkeleton />;
   }
 
   if (!employee) {
@@ -73,7 +87,7 @@ export default function EmployeeProfilePageClient({
   const canEdit =
     user?.role === 'Admin' ||
     user?.role === 'Super Admin' ||
-    user?.uid === employee.id;
+    user?.uid === employee.uid;
 
   const getWorkModeIcon = (workMode: string) => {
     switch (workMode) {
@@ -101,20 +115,25 @@ export default function EmployeeProfilePageClient({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="font-headline text-3xl font-bold">{employee.name}</h1>
           <p className="text-xl text-muted-foreground">{employee.title}</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href={`/api/employees/${employee.id}/export`} target="_blank">
+        <div className="flex w-full gap-2 md:w-auto">
+          <Button
+            asChild
+            variant="outline"
+            className="flex-1 md:flex-none"
+            disabled={!exportUrl}
+          >
+            <Link href={exportUrl} target="_blank">
               <Download className="mr-2 h-4 w-4" />
               Export to PDF
             </Link>
           </Button>
           {canEdit && (
-            <Button asChild>
+            <Button asChild className="flex-1 md:flex-none">
               <Link href={`/employees/${employee.id}/edit`}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit Profile
@@ -284,19 +303,44 @@ export default function EmployeeProfilePageClient({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Documents</CardTitle>
-              <CardDescription>
-                Resumes, certificates, and other professional documents.
-              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
-                <div className="space-y-2">
-                  <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Document management is coming soon.
-                  </p>
+            <CardContent className="space-y-3">
+              {(employee.documents?.length || 0) > 0 ? (
+                employee.documents?.map((doc) => (
+                  <div
+                    key={doc.url}
+                    className="flex items-center justify-between rounded-md border p-2 pl-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <File className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(doc.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild variant="ghost" size="icon">
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
+                  <div className="space-y-2">
+                    <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      No documents have been uploaded for this employee.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

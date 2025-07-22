@@ -15,9 +15,10 @@ import {
 
 const employeesCollection = collection(db, 'employees');
 
-export async function getEmployees(): Promise<Employee[]> {
+export async function getEmployees(companyId: string): Promise<Employee[]> {
   try {
-    const snapshot = await getDocs(employeesCollection);
+    const q = query(employeesCollection, where('companyId', '==', companyId));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(
       (doc) => ({ id: doc.id, ...doc.data() }) as Employee
     );
@@ -27,12 +28,20 @@ export async function getEmployees(): Promise<Employee[]> {
   }
 }
 
-export async function getEmployeeById(id: string): Promise<Employee | null> {
+export async function getEmployeeById(
+  id: string,
+  companyId: string
+): Promise<Employee | null> {
   try {
     const docRef = doc(db, 'employees', id);
     const docSnap = await getDoc(docRef);
+
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Employee;
+      const employee = { id: docSnap.id, ...docSnap.data() } as Employee;
+      // Security check: ensure the employee belongs to the correct company
+      if (employee.companyId === companyId) {
+        return employee;
+      }
     }
     return null;
   } catch (error) {
@@ -43,45 +52,13 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
 
 export async function addEmployee(
   employeeData: Omit<Employee, 'id'>
-): Promise<{ employee: Employee | null; error: string | null }> {
-  try {
-    // Check if an employee record already exists for this UID
-    if (employeeData.uid) {
-      const q = query(
-        employeesCollection,
-        where('uid', '==', employeeData.uid),
-        limit(1)
-      );
-      const existing = await getDocs(q);
-      if (!existing.empty) {
-        // This should ideally not happen in the onboarding flow, but is a safeguard.
-        console.warn(
-          'An employee profile already exists for this user. Skipping creation.'
-        );
-        const existingDoc = existing.docs[0];
-        return {
-          employee: { id: existingDoc.id, ...existingDoc.data() } as Employee,
-          error: null,
-        };
-      }
-    }
-
-    const newEmployeeData = {
-      ...employeeData,
-      status: 'Approved' as const, // Default status for new employees
-    };
-    const docRef = await addDoc(employeesCollection, newEmployeeData);
-    return {
-      employee: { id: docRef.id, ...newEmployeeData },
-      error: null,
-    };
-  } catch (e: any) {
-    const error = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return {
-      employee: null,
-      error: `Failed to create employee record: ${error}`,
-    };
+): Promise<Employee> {
+  // Ensure companyId is present
+  if (!employeeData.companyId) {
+    throw new Error('Company ID is required to create an employee.');
   }
+  const docRef = await addDoc(employeesCollection, employeeData);
+  return { id: docRef.id, ...employeeData };
 }
 
 export async function updateEmployee(
@@ -90,7 +67,11 @@ export async function updateEmployee(
 ): Promise<Employee | null> {
   const docRef = doc(db, 'employees', id);
   await updateDoc(docRef, data);
-  return await getEmployeeById(id);
+  // We don't know the companyId here, so the caller must handle re-fetching.
+  const updatedDoc = await getDoc(docRef);
+  return updatedDoc.exists()
+    ? ({ id: updatedDoc.id, ...updatedDoc.data() } as Employee)
+    : null;
 }
 
 export async function deleteEmployee(id: string): Promise<boolean> {

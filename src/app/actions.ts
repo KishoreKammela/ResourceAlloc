@@ -4,6 +4,7 @@ import { extractSkillsFromResume } from '@/ai/flows/extract-skills-from-resume';
 import { suggestSkillsFromResume } from '@/ai/flows/suggest-skills-from-resume';
 import {
   suggestCandidates,
+  type SuggestCandidatesInput,
   type SuggestCandidatesOutput,
 } from '@/ai/flows/suggest-candidates';
 import {
@@ -55,13 +56,12 @@ export async function analyzeResume(resumeDataUri: string) {
   }
 }
 
-export async function createEmployee(employeeData: Omit<Employee, 'id'>) {
+export async function createEmployee(
+  employeeData: Omit<Employee, 'id'>
+): Promise<{ employee: Employee | null; error: string | null }> {
   try {
     const newEmployee = await addEmployee(employeeData);
-    return {
-      employee: newEmployee,
-      error: null,
-    };
+    return { employee: newEmployee, error: null };
   } catch (e: any) {
     console.error(e);
     const error = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -177,12 +177,12 @@ export async function handleDeleteProject(projectId: string) {
 }
 
 // AI-powered actions
-export async function findCandidates(requiredSkills: string[]): Promise<{
+export async function findCandidates(input: SuggestCandidatesInput): Promise<{
   candidates: SuggestCandidatesOutput['candidates'];
   error: string | null;
 }> {
   try {
-    const result = await suggestCandidates({ requiredSkills });
+    const result = await suggestCandidates(input);
     return {
       candidates: result.candidates,
       error: null,

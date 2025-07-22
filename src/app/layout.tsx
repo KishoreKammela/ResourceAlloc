@@ -6,10 +6,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { usePathname, useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
 import { Inter, Space_Grotesk } from 'next/font/google';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ThemeProvider } from 'next-themes';
+import FullPageLoader from '@/components/app/full-page-loader';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -28,41 +28,56 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (loading) return;
+  const isPublicPath =
+    pathname === '/' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/invite');
 
-    const isPublicPath =
-      pathname === '/' ||
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/signup') ||
-      pathname.startsWith('/verify-email') ||
-      pathname.startsWith('/invite');
+  const [isRedirecting, setIsRedirecting] = useState(!isPublicPath);
+
+  useEffect(() => {
+    if (loading) {
+      setIsRedirecting(true);
+      return;
+    }
+
+    let isRedirectingNow = false;
 
     if (user) {
-      if (!user.emailVerified) {
-        if (!pathname.startsWith('/verify-email')) {
-          router.push('/verify-email');
-        }
-      } else if (!user.onboardingCompleted) {
-        if (!pathname.startsWith('/onboarding/create-profile')) {
-          router.push('/onboarding/create-profile');
-        }
-      } else if (isPublicPath) {
+      if (!user.emailVerified && !pathname.startsWith('/verify-email')) {
+        router.push('/verify-email');
+        isRedirectingNow = true;
+      } else if (
+        user.emailVerified &&
+        !user.onboardingCompleted &&
+        !pathname.startsWith('/onboarding/create-profile')
+      ) {
+        router.push('/onboarding/create-profile');
+        isRedirectingNow = true;
+      } else if (
+        user.emailVerified &&
+        user.onboardingCompleted &&
+        isPublicPath
+      ) {
         router.push('/dashboard');
+        isRedirectingNow = true;
       }
     } else {
       if (!isPublicPath) {
         router.push('/login');
+        isRedirectingNow = true;
       }
     }
-  }, [user, loading, pathname, router]);
 
-  if (loading && !pathname.startsWith('/invite')) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    if (!isRedirectingNow) {
+      setIsRedirecting(false);
+    }
+  }, [user, loading, pathname, router, isPublicPath]);
+
+  if (loading || isRedirecting) {
+    return <FullPageLoader />;
   }
 
   return <>{children}</>;

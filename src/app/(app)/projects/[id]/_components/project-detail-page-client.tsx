@@ -15,6 +15,8 @@ import {
   Loader2,
   Target,
   Briefcase,
+  Building,
+  ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,7 @@ import {
 import ReportDisplay from '@/components/app/report-display';
 import type { Project } from '@/types/project';
 import { useAuth } from '@/contexts/auth-context';
+import ProjectDetailSkeleton from './project-detail-skeleton';
 
 type ProjectDetailPageClientProps = {
   projectId: string;
@@ -52,22 +55,20 @@ export default function ProjectDetailPageClient({
   useEffect(() => {
     async function fetchProject() {
       setIsLoading(true);
-      const fetchedProject = await getProjectById(projectId);
-      setProject(fetchedProject);
+      if (user && user.companyId) {
+        const fetchedProject = await getProjectById(projectId, user.companyId);
+        setProject(fetchedProject);
+      }
       setIsLoading(false);
     }
     fetchProject();
-  }, [projectId]);
+  }, [projectId, user]);
 
   const canManageProject =
     user?.role === 'Admin' || user?.role === 'Super Admin';
 
   if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <ProjectDetailSkeleton />;
   }
 
   if (!project) {
@@ -75,10 +76,21 @@ export default function ProjectDetailPageClient({
   }
 
   const onGenerateReport = async () => {
+    if (!user?.companyId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not determine your company.',
+      });
+      return;
+    }
     setIsReportLoading(true);
     setReport(null);
     try {
-      const result = await generateProjectReport({ projectId: project.id });
+      const result = await generateProjectReport({
+        projectId: project.id,
+        companyId: user.companyId,
+      });
       if (result.error) {
         throw new Error(result.error);
       }
@@ -116,24 +128,41 @@ export default function ProjectDetailPageClient({
   };
 
   return (
-    <div className="mx-auto space-y-8">
-      <div className="flex items-start justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="font-headline text-3xl font-bold">{project.name}</h1>
-          <p className="text-xl text-muted-foreground">{project.client}</p>
+          {project.clientName && (
+            <div className="mt-1 flex items-center">
+              <Building className="mr-2 h-5 w-5 text-muted-foreground" />
+              <p className="text-xl text-muted-foreground">
+                {project.clientName}
+              </p>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-shrink-0 gap-2 md:w-auto">
+          <Button asChild variant="outline" className="flex-1 md:flex-none">
+            <Link href="/projects">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Link>
+          </Button>
           {canManageProject && (
             <>
-              <Button onClick={onGenerateReport} disabled={isReportLoading}>
+              <Button
+                onClick={onGenerateReport}
+                disabled={isReportLoading}
+                className="flex-1 md:flex-none"
+              >
                 {isReportLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Bot className="mr-2 h-4 w-4" />
                 )}
-                Generate AI Report
+                AI Report
               </Button>
-              <Button asChild>
+              <Button asChild className="flex-1 md:flex-none">
                 <Link href={`/projects/${project.id}/edit`}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit Project
@@ -141,9 +170,6 @@ export default function ProjectDetailPageClient({
               </Button>
             </>
           )}
-          <Button asChild variant="outline">
-            <Link href="/projects">Back to Projects</Link>
-          </Button>
         </div>
       </div>
 
