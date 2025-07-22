@@ -16,26 +16,44 @@ import {
   getMultiFactorResolver,
   PhoneAuthProvider,
   PhoneMultiFactorGenerator,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  updatePassword,
   type User as FirebaseUser,
   type MultiFactorResolver,
   type AuthError,
   MultiFactorError,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
-import { createUserProfile, getUserProfile } from '@/services/users.services';
+import {
+  createUserProfile,
+  getUserProfile,
+  updateUserProfile,
+} from '@/services/users.services';
 import type { AppUser, NewCompanyUser } from '@/types/user';
 import { usePathname, useRouter } from 'next/navigation';
 import { addCompany } from '@/services/companies.services';
-import { addEmployee, getEmployeeByUid } from '@/services/employees.services';
+import { addEmployee, getEmployeeById } from '@/services/employees.services';
 import { addAuditLog } from '@/services/audit.services';
+import {
+  getInvitationByToken,
+  updateInvitationStatus,
+} from '@/services/invitations.services';
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ mfa: boolean } | undefined>;
   signup: (data: NewCompanyUser) => Promise<any>;
+  invitedUserSignup: (
+    name: string,
+    email: string,
+    pass: string,
+    token: string
+  ) => Promise<any>;
   logout: () => Promise<any>;
   sendVerificationEmail: () => Promise<void>;
+  updateUserPassword: (currentPass: string, newPass: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   mfaResolver: ((verificationCode: string) => Promise<void>) | null;
 }
@@ -148,32 +166,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userProfileData: Omit<AppUser, 'emailVerified' | 'email'> = {
         uid: firebaseUser.uid,
         name: data.name,
-        designation: data.designation,
         companyId: newCompany.id,
         role: 'Super Admin' as const,
-        onboardingCompleted: false,
+        onboardingCompleted: false, // Start onboarding
       };
 
       await createUserProfile(firebaseUser.uid, userProfileData);
 
-      await addEmployee({
-        uid: firebaseUser.uid,
-        name: data.name,
-        title: data.designation,
-        email: firebaseUser.email ?? undefined,
-        skills: [],
-        availability: 'Available',
-        workMode: 'Remote',
-        status: 'Approved',
-      });
-
       await addAuditLog({
         event: 'user_created',
         userId: firebaseUser.uid,
-        details: `New user registered: ${firebaseUser.email}`,
+        details: `New company user registered: ${firebaseUser.email}`,
       });
 
       // The onAuthStateChanged listener will handle setting the user state.
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+  };
+
+  const invitedUserSignup = async (
+    name: string,
+    email: string,
+    pass: string,
+    token: string
+  ) => {
+    setLoading(true);
+    try {
+      // 1. Validate the token again to be sure
+      const invitation = await getInvitationByToken(token);
+      if (!invitation) {
+        throw new Error('Invitation is invalid or has expired.');
+      }
+
+      // 2. Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+      const firebaseUser = userCredential.user;
+
+      // 3. Send verification email
+      await sendEmailVerification(firebaseUser);
+
+      // 4. Create user profile in Firestore
+      const userProfileData: Omit<AppUser, 'emailVerified' | 'email'> = {
+        uid: firebaseUser.uid,
+        name: name,
+        companyId: invitation.companyId,
+        role: invitation.role,
+        onboardingCompleted: false, // User needs to complete their profile
+      };
+      await createUserProfile(firebaseUser.uid, userProfileData);
+
+      // 5. Update invitation status to 'accepted'
+      await updateInvitationStatus(invitation.id, 'accepted');
+
+      // 6. Log the event
+      await addAuditLog({
+        event: 'user_created',
+        userId: firebaseUser.uid,
+        details: `Invited user registered: ${firebaseUser.email}`,
+      });
     } catch (error) {
       setLoading(false);
       throw error;
@@ -203,13 +259,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUserPassword = async (currentPass: string, newPass: string) => {
+    setLoading(true);
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      setLoading(false);
+      throw new Error('You must be logged in to change your password.');
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        currentPass
+      );
+      // Re-authenticate the user to ensure they are the rightful owner
+      await reauthenticateWithCredential(currentUser, credential);
+      // If re-authentication is successful, update the password
+      await updatePassword(currentUser, newPass);
+    } catch (error) {
+      // Re-throw the error to be caught by the calling component
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     signup,
+    invitedUserSignup,
     logout,
     sendVerificationEmail,
+    updateUserPassword,
     refreshUser,
     mfaResolver,
   };

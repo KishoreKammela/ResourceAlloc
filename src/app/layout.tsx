@@ -9,6 +9,7 @@ import { MotionConfig } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { useEffect } from 'react';
+import { ThemeProvider } from 'next-themes';
 
 const fontInter = Inter({
   subsets: ['latin'],
@@ -34,10 +35,10 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
       pathname === '/' ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/signup') ||
-      pathname.startsWith('/verify-email');
+      pathname.startsWith('/verify-email') ||
+      pathname.startsWith('/invite');
 
     if (user) {
-      // User is logged in
       if (!user.emailVerified) {
         if (!pathname.startsWith('/verify-email')) {
           router.push('/verify-email');
@@ -47,18 +48,16 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
           router.push('/onboarding/create-profile');
         }
       } else if (isPublicPath) {
-        // User is fully onboarded but on a public page
         router.push('/dashboard');
       }
     } else {
-      // User is not logged in
       if (!isPublicPath) {
         router.push('/login');
       }
     }
   }, [user, loading, pathname, router]);
 
-  if (loading) {
+  if (loading && !pathname.startsWith('/invite')) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -88,12 +87,19 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-body antialiased', 'bg-background')}>
-        <AuthProvider>
-          <MotionConfig reducedMotion="user">
-            <RootLayoutContent>{children}</RootLayoutContent>
-          </MotionConfig>
-        </AuthProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <MotionConfig reducedMotion="user">
+              <RootLayoutContent>{children}</RootLayoutContent>
+            </MotionConfig>
+          </AuthProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

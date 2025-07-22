@@ -99,7 +99,7 @@ export default function ProfileCreator({
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
-      title: user?.designation || '',
+      title: user?.role || '',
       availability: 'Available',
       workMode: 'Remote',
     },
@@ -177,22 +177,28 @@ export default function ProfileCreator({
       const result = await createEmployee({
         ...data,
         skills,
-        uid: user.uid,
         status: 'Approved',
+        uid: user.uid,
       });
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (result.error || !result.employee) {
+        throw new Error(result.error || 'Failed to create employee profile.');
       }
 
+      // Safe to access result.employee now
+      const createdEmployee = result.employee;
+
       if (isOnboarding) {
-        await updateUserProfile(user.uid, { onboardingCompleted: false });
+        await updateUserProfile(user.uid, {
+          onboardingCompleted: true,
+          employeeId: createdEmployee?.employee?.id,
+        });
         await refreshUser();
       }
 
       toast({
         title: 'Profile Created',
-        description: `A new profile for ${result.employee?.name} has been successfully created.`,
+        description: `A new profile for ${createdEmployee?.employee?.name} has been successfully created.`,
       });
 
       router.push(isOnboarding ? '/dashboard' : '/employees');

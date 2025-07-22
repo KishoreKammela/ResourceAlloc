@@ -38,7 +38,14 @@ export async function updateProject(
   data: UpdatableProjectData
 ): Promise<Project | null> {
   const docRef = doc(db, 'projects', id);
-  await updateDoc(docRef, data);
+  // Firestore does not store 'undefined' values, so we clean the objects in the team array
+  const cleanedData = {
+    ...data,
+    team: data.team
+      ? data.team.map((member) => JSON.parse(JSON.stringify(member)))
+      : [],
+  };
+  await updateDoc(docRef, cleanedData);
   return await getProjectById(id);
 }
 

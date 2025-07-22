@@ -41,30 +41,47 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
   }
 }
 
-export async function getEmployeeByUid(uid: string): Promise<Employee | null> {
-  try {
-    const q = query(employeesCollection, where('uid', '==', uid), limit(1));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() } as Employee;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching employee by UID: ', error);
-    return null;
-  }
-}
-
 export async function addEmployee(
   employeeData: Omit<Employee, 'id'>
-): Promise<Employee> {
-  const newEmployeeData = {
-    ...employeeData,
-    status: 'Approved' as const, // Default status for new employees
-  };
-  const docRef = await addDoc(employeesCollection, newEmployeeData);
-  return { id: docRef.id, ...newEmployeeData };
+): Promise<{ employee: Employee | null; error: string | null }> {
+  try {
+    // Check if an employee record already exists for this UID
+    if (employeeData.uid) {
+      const q = query(
+        employeesCollection,
+        where('uid', '==', employeeData.uid),
+        limit(1)
+      );
+      const existing = await getDocs(q);
+      if (!existing.empty) {
+        // This should ideally not happen in the onboarding flow, but is a safeguard.
+        console.warn(
+          'An employee profile already exists for this user. Skipping creation.'
+        );
+        const existingDoc = existing.docs[0];
+        return {
+          employee: { id: existingDoc.id, ...existingDoc.data() } as Employee,
+          error: null,
+        };
+      }
+    }
+
+    const newEmployeeData = {
+      ...employeeData,
+      status: 'Approved' as const, // Default status for new employees
+    };
+    const docRef = await addDoc(employeesCollection, newEmployeeData);
+    return {
+      employee: { id: docRef.id, ...newEmployeeData },
+      error: null,
+    };
+  } catch (e: any) {
+    const error = e instanceof Error ? e.message : 'An unknown error occurred.';
+    return {
+      employee: null,
+      error: `Failed to create employee record: ${error}`,
+    };
+  }
 }
 
 export async function updateEmployee(

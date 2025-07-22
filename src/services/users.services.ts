@@ -2,7 +2,18 @@
 
 import { db } from '@/lib/firebase/config';
 import type { AppUser } from '@/types/user';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
+
+const usersCollection = collection(db, 'users');
 
 export async function createUserProfile(
   uid: string,
@@ -30,4 +41,15 @@ export async function updateUserProfile(
 ): Promise<void> {
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, data);
+}
+
+export async function getUsersByCompany(companyId: string): Promise<AppUser[]> {
+  try {
+    const q = query(usersCollection, where('companyId', '==', companyId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({ ...doc.data() }) as AppUser);
+  } catch (error) {
+    console.error('Error fetching users by company: ', error);
+    return [];
+  }
 }

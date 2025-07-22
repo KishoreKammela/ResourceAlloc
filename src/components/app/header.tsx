@@ -1,92 +1,53 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, LogOut, Shield } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
 export function Header() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
+  const pathname = usePathname();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Logout Failed',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.',
-      });
+  // A simple function to derive a title from the pathname
+  const getPageTitle = (path: string) => {
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length === 0) return 'Dashboard';
+
+    // Handle nested routes like /employees/[id]/edit
+    if (segments.includes('edit')) {
+      const resource = segments[segments.length - 2];
+      return `Edit ${resource.charAt(0).toUpperCase() + resource.slice(1, -1)}`;
     }
+    if (segments.includes('new')) {
+      const resource = segments[segments.length - 2];
+      return `New ${resource.charAt(0).toUpperCase() + resource.slice(1, -1)}`;
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    // Check if last segment is a potential ID (e.g., UUID or number), show parent route
+    if (
+      segments.length > 1 &&
+      /^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$/.test(lastSegment)
+    ) {
+      const parentSegment = segments[segments.length - 2];
+      return (
+        parentSegment.charAt(0).toUpperCase() +
+        parentSegment.slice(1).replace('-', ' ')
+      );
+    }
+
+    return (
+      lastSegment.charAt(0).toUpperCase() +
+      lastSegment.slice(1).replace('-', ' ')
+    );
   };
 
+  const title = getPageTitle(pathname);
+
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-8">
-      <SidebarTrigger className="md:hidden" />
-      <div className="flex-1">{/* Placeholder for Breadcrumbs or title */}</div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-9 w-9">
-              <AvatarImage
-                src={`https://i.pravatar.cc/150?u=${user?.email}`}
-                alt="User Avatar"
-              />
-              <AvatarFallback>
-                {user?.email?.charAt(0).toUpperCase() ?? 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
-          <DropdownMenuLabel>
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">Account</p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user?.email}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuLabel>
-            <div className="flex items-center">
-              <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
-              <p className="text-xs font-medium text-muted-foreground">
-                Role: {user?.role}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-8">
+      <div className="flex items-center gap-2">
+        <SidebarTrigger />
+        <h1 className="font-headline text-2xl font-bold">{title}</h1>
+      </div>
     </header>
   );
 }

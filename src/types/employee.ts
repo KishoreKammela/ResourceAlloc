@@ -1,12 +1,12 @@
 export type Employee = {
   id: string;
-  uid: string; // Firebase Auth User ID
   name: string;
   title: string;
   skills: string[];
   availability: 'Available' | 'On Project';
   workMode: 'Remote' | 'Hybrid' | 'On-site';
   status: 'Approved' | 'Pending';
+  uid?: string; // Link to the AppUser
   email?: string;
   professionalSummary?: string;
   location?: string;
@@ -16,4 +16,4 @@ export type Employee = {
   };
 };
 
-export type UpdatableEmployeeData = Partial<Omit<Employee, 'id' | 'uid'>>;
+export type UpdatableEmployeeData = Partial<Omit<Employee, 'id'>>;
