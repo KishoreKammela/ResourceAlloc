@@ -45,22 +45,22 @@ This section covers the creation of detailed employee profiles and a system for 
 | **Update Profile Forms**         | `✅ Done`    | Enhanced `ProfileEditor` components to include inputs for the new fields.                                                                                                            |
 | **Display New Profile Info**     | `✅ Done`    | Updated the employee detail page to correctly display all the new profile information.                                                                                               |
 | **Profile Completion Tracking**  | `✅ Done`    | A utility calculates a `profileCompletion` score, which is now displayed as a progress bar on the profile page.                                                                      |
-| **Profile Privacy Controls**     | `✅ Done`    | Implemented Firestore security rules to control field visibility and edit permissions based on user roles (e.g., Employee can edit own, Admin can edit all).                         |
+| **Profile Privacy Controls**     | `⚠️ Partial` | **NOTE:** Firestore rules are currently open for development (`allow read, write: if request.auth != null`). Strict, multi-tenant rules need to be re-implemented before production. |
 | **Profile Verification System**  | `⚠️ Partial` | Added a `status` field to the Employee model. A more complex UI workflow for admin approvals of profile changes is scheduled for a later iteration.                                  |
 | **Profile Export Functionality** | `✅ Done`    | Implemented a new API route (`/api/employees/[id]/export`) that uses `jspdf` to generate and download a PDF of an employee's profile. An "Export to PDF" button was added to the UI. |
 | **Profile Comparison Tools**     | `✅ Done`    | Implemented a UI for selecting employees from a list and a dedicated page to display their profiles side-by-side for comparison.                                                     |
 
 ### 2.2 Document Management System
 
-| Feature                     | Status       | Details & Pending Tasks                                                                                               |
-| :-------------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------------- |
-| **Firebase Storage Setup**  | `✅ Done`    | Firebase Storage is now configured and integrated for file uploads via `src/lib/firebase/storage.ts`.                 |
-| **Implement File Upload**   | `✅ Done`    | The `ProfileEditor` now supports document uploads for employees.                                                      |
-| **Update Data Model**       | `✅ Done`    | The `Employee` type now includes a `documents` array to store file metadata (name, URL, type, size).                  |
-| **Display & Download**      | `✅ Done`    | The employee detail page now lists uploaded documents and provides download links.                                    |
-| **Automated Parsing**       | `✅ Done`    | The `ProfileCreator` already uses Genkit with Gemini API to extract skills from an uploaded resume during onboarding. |
-| **Version Control**         | `⏳ Pending` | Could be implemented by appending timestamps to filenames or using a subcollection in Firestore. Scheduled for later. |
-| **Document Categorization** | `⏳ Pending` | Can be added to the `documents` object in the data model later.                                                       |
-| **Bulk Upload**             | `⏳ Pending` | A feature enhancement for later.                                                                                      |
-| **Document Preview**        | `⏳ Pending` | Requires a more complex implementation, possibly with third-party libraries.                                          |
-| **Security & Logging**      | `✅ Done`    | Firestore security rules have been added to secure the `files` collection, ensuring company-level data isolation.     |
+| Feature                     | Status       | Details & Pending Tasks                                                                                                                                        |
+| :-------------------------- | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Firebase Storage Setup**  | `✅ Done`    | Firebase Storage is now configured and integrated for file uploads via `src/lib/firebase/storage.ts`.                                                          |
+| **Implement File Upload**   | `✅ Done`    | The `ProfileEditor` now supports document uploads for employees.                                                                                               |
+| **Update Data Model**       | `✅ Done`    | The `Employee` type now includes a `documents` array to store file metadata (name, URL, type, size).                                                           |
+| **Display & Download**      | `✅ Done`    | The employee detail page now lists uploaded documents and provides download links.                                                                             |
+| **Automated Parsing**       | `✅ Done`    | The `ProfileCreator` already uses Genkit with Gemini API to extract skills from an uploaded resume during onboarding.                                          |
+| **Version Control**         | `⏳ Pending` | Could be implemented by appending timestamps to filenames or using a subcollection in Firestore. Scheduled for later.                                          |
+| **Document Categorization** | `⏳ Pending` | Can be added to the `documents` object in the data model later.                                                                                                |
+| **Bulk Upload**             | `⏳ Pending` | A feature enhancement for later.                                                                                                                               |
+| **Document Preview**        | `⏳ Pending` | Requires a more complex implementation, possibly with third-party libraries.                                                                                   |
+| **Security & Logging**      | `✅ Done`    | Firebase Storage is now in use, but Firestore rules are currently permissive. Security rules for Storage will need to be configured alongside Firestore rules. |
