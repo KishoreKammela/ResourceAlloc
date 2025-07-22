@@ -17,19 +17,11 @@ import {
   type GenerateProjectReportOutput,
 } from '@/ai/flows/generate-project-report';
 
-import {
-  addEmployee,
-  updateEmployee,
-  deleteEmployee,
-} from '@/services/employees.services';
-import {
-  addProject,
-  updateProject,
-  deleteProject,
-} from '@/services/projects.services';
+import { updateEmployee, deleteEmployee } from '@/services/employees.services';
+import { updateProject, deleteProject } from '@/services/projects.services';
 
-import type { Employee, UpdatableEmployeeData } from '@/types/employee';
-import type { Project, UpdatableProjectData } from '@/types/project';
+import type { UpdatableEmployeeData } from '@/types/employee';
+import type { UpdatableProjectData } from '@/types/project';
 
 // Employee Actions
 export async function analyzeResume(resumeDataUri: string) {
@@ -52,22 +44,6 @@ export async function analyzeResume(resumeDataUri: string) {
       extractedSkills: [],
       suggestedSkills: [],
       error: `Failed to analyze resume: ${error}`,
-    };
-  }
-}
-
-export async function createEmployee(
-  employeeData: Omit<Employee, 'id'>
-): Promise<{ employee: Employee | null; error: string | null }> {
-  try {
-    const newEmployee = await addEmployee(employeeData);
-    return { employee: newEmployee, error: null };
-  } catch (e: any) {
-    console.error(e);
-    const error = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return {
-      employee: null,
-      error: `Failed to create employee: ${error}`,
     };
   }
 }
@@ -116,23 +92,6 @@ export async function handleDeleteEmployee(employeeId: string) {
 }
 
 // Project Actions
-export async function createProject(projectData: Omit<Project, 'id'>) {
-  try {
-    const newProject = await addProject(projectData);
-    return {
-      project: newProject,
-      error: null,
-    };
-  } catch (e: any) {
-    console.error(e);
-    const error = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return {
-      project: null,
-      error: `Failed to create project: ${error}`,
-    };
-  }
-}
-
 export async function handleUpdateProject(
   projectId: string,
   projectData: UpdatableProjectData

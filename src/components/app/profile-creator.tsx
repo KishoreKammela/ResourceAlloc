@@ -35,7 +35,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { createEmployee, analyzeResume } from '@/app/actions';
+import { analyzeResume } from '@/app/actions';
+import { addEmployee } from '@/services/employees.services';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -175,19 +176,13 @@ export default function ProfileCreator({
 
     setIsSaving(true);
     try {
-      const result = await createEmployee({
+      const createdEmployee = await addEmployee({
         ...data,
         skills,
         status: 'Approved',
         uid: user.uid,
         companyId: user.companyId,
       });
-
-      if (result.error || !result.employee) {
-        throw new Error(result.error || 'Failed to create employee profile.');
-      }
-
-      const createdEmployee = result.employee;
 
       if (isOnboarding) {
         await updateUserProfile(user.uid, {

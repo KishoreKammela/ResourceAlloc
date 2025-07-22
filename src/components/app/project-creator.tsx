@@ -45,7 +45,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { findCandidates, createProject } from '@/app/actions';
+import { findCandidates } from '@/app/actions';
+import { addProject } from '@/services/projects.services';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
@@ -178,7 +179,7 @@ export default function ProjectCreator() {
           ? undefined
           : clients.find((c) => c.id === clientId);
 
-      const result = await createProject({
+      const newProject = await addProject({
         name,
         companyId: user.companyId,
         clientId: selectedClient?.id,
@@ -190,13 +191,9 @@ export default function ProjectCreator() {
         description: 'No description provided.',
       });
 
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
       toast({
         title: 'Project Created',
-        description: `Project "${result.project?.name}" has been successfully created.`,
+        description: `Project "${newProject.name}" has been successfully created.`,
       });
 
       router.push('/projects');
