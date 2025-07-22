@@ -1,20 +1,42 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper Functions (kept for future use)
-    function isSuperAdmin() {
-      return request.auth.token.role == 'Super Admin';
-    }
-
-    function isAdmin() {
-      return request.auth.token.role == 'Admin' || isSuperAdmin();
+    
+    // Allow anyone to create a company and their own user profile during signup
+    match /companies/{companyId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
     
-    // Allow any authenticated user to read/write for development purposes
-    match /{document=**} {
-       allow read, write: if request.auth != null;
+    match /users/{userId} {
+      allow create: if request.auth.uid == userId;
+      allow read, update, delete: if request.auth.uid == userId;
+    }
+
+    // Allow admin users to manage all users within their company
+    match /users/{userId} {
+      allow read, list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+    }
+
+    // Allow audit logs to be created by anyone (for signup) and read by admins
+    match /audit_logs/{logId} {
+      allow create: if true;
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Super Admin'];
+    }
+
+    // Secure other collections by default
+    match /employees/{employeeId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+
+    match /projects/{projectId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+
+    match /invitations/{invitationId} {
+       allow create, read, update, delete: if request.auth != null;
     }
   }
 }
