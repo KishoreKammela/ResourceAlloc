@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { handleCreateInvitation } from '@/app/(app)/settings/invitations/actions';
+import { handleCreateInvitation } from '@/app/(app)/team/actions';
 import type { Invitation } from '@/types/invitation';
 import type { UserRole } from '@/types/user';
 import { Separator } from '../ui/separator';
@@ -134,10 +134,10 @@ export default function InvitationManager({
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Invite New User</CardTitle>
+          <CardTitle>Invite New Team Member</CardTitle>
           <CardDescription>
-            Send an invitation to a new user to join your company on
-            ResourceAlloc.
+            Send an invitation to a new user to join your company. They will be
+            guided to set up their profile upon registration.
           </CardDescription>
         </CardHeader>
         <Form {...form}>

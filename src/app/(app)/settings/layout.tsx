@@ -12,13 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 
-const baseNavItems = [
+const navItems = [
   { title: 'Profile', href: '/settings/profile' },
   { title: 'Password', href: '/settings/password' },
   { title: 'Preferences', href: '/settings/preferences' },
 ];
-
-const adminNavItems = [{ title: 'Invitations', href: '/settings/invitations' }];
 
 export default function SettingsLayout({
   children,
@@ -28,11 +26,6 @@ export default function SettingsLayout({
   const { user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-
-  const navItems =
-    user?.role === 'Super Admin'
-      ? [...baseNavItems, ...adminNavItems]
-      : baseNavItems;
 
   const activeItem =
     navItems.find((item) => pathname === item.href) || navItems[0];

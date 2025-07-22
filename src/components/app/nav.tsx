@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   Shield,
+  Users2,
 } from 'lucide-react';
 
 import {
@@ -42,6 +43,13 @@ const primaryNavItems = [
     label: 'Projects',
     icon: Briefcase,
     tooltip: 'Projects',
+  },
+  {
+    href: '/team',
+    label: 'Team',
+    icon: Users2,
+    tooltip: 'Team Management',
+    adminOnly: true,
   },
 ];
 
@@ -106,7 +114,7 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="w-full">
-        <div className="group/menu-item flex w-full items-center justify-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-2">
+        <div className="group/menu-item flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
           <Avatar className="h-7 w-7">
             <AvatarImage src={user.avatarUrl} alt="User Avatar" />
             <AvatarFallback>
@@ -156,6 +164,13 @@ function UserMenu() {
 
 export function Nav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const isUserAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
+
+  const visiblePrimaryNavItems = primaryNavItems.filter(
+    (item) => !item.adminOnly || isUserAdmin
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -163,7 +178,7 @@ export function Nav() {
         <SidebarMenu className="space-y-4 p-2">
           <div>
             <SidebarMenu className="space-y-1">
-              {primaryNavItems.map((item) => (
+              {visiblePrimaryNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
