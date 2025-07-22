@@ -180,6 +180,7 @@ export default function ProjectCreator() {
 
       const result = await createProject({
         name,
+        companyId: user.companyId,
         clientId: selectedClient?.id,
         clientName: selectedClient?.name,
         requiredSkills,
@@ -187,7 +188,6 @@ export default function ProjectCreator() {
         status: 'Planning',
         timeline: 'TBD',
         description: 'No description provided.',
-        companyId: user.companyId,
       });
 
       if (result.error) {
