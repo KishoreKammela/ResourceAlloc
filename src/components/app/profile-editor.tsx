@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { handleUpdateEmployee, handleDeleteEmployee } from '@/app/actions';
+import { updateResource, deleteResource } from '@/services/resources.services';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import {
@@ -61,89 +61,80 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { Employee, EmployeeDocument } from '@/types/employee';
+import type { Resource, ResourceDocument, Skill } from '@/types/resource';
 import { Textarea } from '../ui/textarea';
 import { uploadFile } from '@/lib/firebase/storage';
+import { Timestamp } from 'firebase/firestore';
 
 const profileFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters long.'),
+  firstName: z.string().min(1, 'First name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
   email: z.string().email('Please enter a valid email address.'),
-  title: z.string().min(2, 'Title must be at least 2 characters long.'),
-  availability: z.enum(['Available', 'On Project']),
+  designation: z.string().min(2, 'Title must be at least 2 characters long.'),
+  availabilityStatus: z.enum([
+    'Available',
+    'Partially Available',
+    'Unavailable',
+    'On Leave',
+  ]),
   workMode: z.enum(['Remote', 'Hybrid', 'On-site']),
-  professionalSummary: z.string().optional(),
-  location: z.string().optional(),
-  compensationSalary: z.coerce.number().optional(),
-  compensationBillingRate: z.coerce.number().optional(),
-  yearsOfExperience: z.coerce.number().optional(),
+  workLocation: z.string().optional(),
+  billingRate: z.coerce.number().optional(),
+  totalExperienceYears: z.coerce.number().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export default function ProfileEditor({ employee }: { employee: Employee }) {
+export default function ProfileEditor({ resource }: { resource: Resource }) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [skills, setSkills] = useState<string[]>(employee.skills || []);
+  const [technicalSkills, setTechnicalSkills] = useState<Skill[]>(
+    resource.technicalSkills || []
+  );
   const [newSkill, setNewSkill] = useState('');
-  const [certifications, setCertifications] = useState<string[]>(
-    employee.certifications || []
-  );
-  const [newCertification, setNewCertification] = useState('');
-  const [industries, setIndustries] = useState<string[]>(
-    employee.industryExperience || []
-  );
-  const [newIndustry, setNewIndustry] = useState('');
-  const [documents, setDocuments] = useState<EmployeeDocument[]>(
-    employee.documents || []
+  // Certifications and Industries will be handled in a future step
+  const [documents, setDocuments] = useState<ResourceDocument[]>(
+    resource.documents || []
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resourceName = `${resource.firstName} ${resource.lastName}`;
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: employee.name,
-      email: employee.email || '',
-      title: employee.title,
-      availability: employee.availability,
-      workMode: employee.workMode,
-      professionalSummary: employee.professionalSummary || '',
-      location: employee.location || '',
-      compensationSalary: employee.compensation?.salary,
-      compensationBillingRate: employee.compensation?.billingRate,
-      yearsOfExperience: employee.yearsOfExperience,
+      firstName: resource.firstName,
+      lastName: resource.lastName,
+      email: resource.email,
+      designation: resource.designation,
+      availabilityStatus: resource.availabilityStatus,
+      workMode: resource.workMode,
+      workLocation: resource.workLocation || '',
+      billingRate: resource.billingRate,
+      totalExperienceYears: resource.totalExperienceYears,
     },
   });
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     setIsSaving(true);
     try {
-      const { compensationSalary, compensationBillingRate, ...restOfData } =
-        data;
-
-      const result = await handleUpdateEmployee(employee.id, {
-        ...restOfData,
-        skills,
-        certifications,
-        industryExperience: industries,
+      const result = await updateResource(resource.id, {
+        ...data,
+        technicalSkills,
         documents,
-        compensation: {
-          salary: compensationSalary,
-          billingRate: compensationBillingRate,
-        },
       });
-      if (result.error) {
-        throw new Error(result.error);
+      if (!result) {
+        throw new Error('Failed to update profile.');
       }
 
       toast({
         title: 'Profile Updated',
-        description: `The profile for ${result.employee?.name} has been successfully updated.`,
+        description: `The profile for ${resourceName} has been successfully updated.`,
       });
 
-      router.push(`/employees/${employee.id}`);
+      router.push(`/resources/${resource.id}`);
       router.refresh(); // Refresh to show updated data
     } catch (error) {
       toast({
@@ -162,15 +153,15 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
   const onDelete = async () => {
     setIsDeleting(true);
     try {
-      const result = await handleDeleteEmployee(employee.id);
-      if (result.error) {
-        throw new Error(result.error);
+      const success = await deleteResource(resource.id);
+      if (!success) {
+        throw new Error('Failed to delete resource');
       }
       toast({
-        title: 'Employee Deleted',
-        description: `The profile for ${employee.name} has been deleted.`,
+        title: 'Resource Deleted',
+        description: `The profile for ${resourceName} has been deleted.`,
       });
-      router.push('/employees');
+      router.push('/resources');
       router.refresh();
     } catch (error) {
       toast({
@@ -194,14 +185,15 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
 
     setIsUploading(true);
     try {
-      const uploadPath = `documents/${employee.companyId}/${employee.id}`;
+      const uploadPath = `documents/${resource.companyId}/${resource.id}`;
       const downloadURL = await uploadFile(file, uploadPath);
 
-      const newDocument: EmployeeDocument = {
+      const newDocument: ResourceDocument = {
         name: file.name,
         url: downloadURL,
         type: file.type,
         size: file.size,
+        uploadedAt: Timestamp.now(),
       };
 
       setDocuments((prev) => [...prev, newDocument]);
@@ -227,32 +219,28 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
     setDocuments((prev) => prev.filter((doc) => doc.url !== urlToRemove));
   };
 
-  const createTagHandler = (
-    value: string,
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    currentTags: string[]
-  ) => {
-    const trimmedValue = value.trim();
-    if (trimmedValue && !currentTags.includes(trimmedValue)) {
-      setter((prev) => [...prev, trimmedValue]);
+  const addSkill = (skillName: string) => {
+    const trimmedValue = skillName.trim();
+    if (trimmedValue && !technicalSkills.some((s) => s.name === trimmedValue)) {
+      setTechnicalSkills((prev) => [
+        ...prev,
+        { name: trimmedValue, level: 'Intermediate' }, // Default level
+      ]);
     }
   };
 
-  const removeTagHandler = (
-    tagToRemove: string,
-    setter: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setter((prev) => prev.filter((tag) => tag !== tagToRemove));
+  const removeSkill = (skillName: string) => {
+    setTechnicalSkills((prev) => prev.filter((s) => s.name !== skillName));
   };
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">
-          Edit Employee Profile
+          Edit Resource Profile
         </CardTitle>
         <CardDescription>
-          Update the details for {employee.name}.
+          Update the details for {resourceName}.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -264,12 +252,12 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="name"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Jane Doe" {...field} />
+                      <Input placeholder="e.g. Jane" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -277,15 +265,12 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               />
               <FormField
                 control={form.control}
-                name="email"
+                name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>Last Name</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="e.g. jane.doe@example.com"
-                        {...field}
-                      />
+                      <Input placeholder="e.g. Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -294,10 +279,23 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
             </div>
             <FormField
               control={form.control}
-              name="title"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. jane.doe@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="designation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Designation (Title)</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g. Senior Software Engineer"
@@ -310,10 +308,10 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
             />
             <FormField
               control={form.control}
-              name="location"
+              name="workLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location</FormLabel>
+                  <FormLabel>Work Location</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g. San Francisco, CA"
@@ -328,7 +326,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="availability"
+                name="availabilityStatus"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Availability</FormLabel>
@@ -343,7 +341,11 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Available">Available</SelectItem>
-                        <SelectItem value="On Project">On Project</SelectItem>
+                        <SelectItem value="Partially Available">
+                          Partially Available
+                        </SelectItem>
+                        <SelectItem value="Unavailable">Unavailable</SelectItem>
+                        <SelectItem value="On Leave">On Leave</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -376,64 +378,26 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                 )}
               />
             </div>
+
             <Separator />
             <h3 className="font-headline text-lg font-semibold">
               Professional Details
             </h3>
-            <FormField
-              control={form.control}
-              name="professionalSummary"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Professional Summary</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="A brief summary of professional experience, career objectives, and highlights."
-                      {...field}
-                      value={field.value || ''}
-                      rows={4}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="yearsOfExperience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Years of Experience</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 5"
-                      {...field}
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="compensationSalary"
+                name="totalExperienceYears"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Salary (USD)</FormLabel>
+                    <FormLabel>Total Years of Experience</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          placeholder="e.g. 120000"
-                          {...field}
-                          value={field.value || ''}
-                          className="pl-8"
-                        />
-                      </div>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 5"
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -441,10 +405,10 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               />
               <FormField
                 control={form.control}
-                name="compensationBillingRate"
+                name="billingRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Billing Rate (USD/hr)</FormLabel>
+                    <FormLabel>Standard Billing Rate (USD/hr)</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -471,23 +435,23 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               <div>
                 <FormLabel>Current Skills</FormLabel>
                 <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                  {skills.map((skill) => (
+                  {technicalSkills.map((skill) => (
                     <Badge
-                      key={skill}
+                      key={skill.name}
                       variant="default"
                       className="flex items-center gap-2 border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/20"
                     >
-                      {skill}
+                      {skill.name}
                       <button
                         type="button"
-                        onClick={() => removeTagHandler(skill, setSkills)}
+                        onClick={() => removeSkill(skill.name)}
                         className="rounded-full p-0.5 hover:bg-black/10"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
-                  {skills.length === 0 && (
+                  {technicalSkills.length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       No skills assigned. Add some below.
                     </p>
@@ -504,7 +468,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        createTagHandler(newSkill, setSkills, skills);
+                        addSkill(newSkill);
                         setNewSkill('');
                       }
                     }}
@@ -513,7 +477,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      createTagHandler(newSkill, setSkills, skills);
+                      addSkill(newSkill);
                       setNewSkill('');
                     }}
                   >
@@ -524,109 +488,6 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
               </div>
             </div>
 
-            <Separator />
-            <div className="space-y-4">
-              <h3 className="font-headline text-lg font-semibold">
-                Certifications
-              </h3>
-              <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                {certifications.map((cert) => (
-                  <Badge
-                    key={cert}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    {cert}
-                    <button
-                      type="button"
-                      onClick={() => removeTagHandler(cert, setCertifications)}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newCertification}
-                  onChange={(e) => setNewCertification(e.target.value)}
-                  placeholder="e.g. AWS Certified Developer"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      createTagHandler(
-                        newCertification,
-                        setCertifications,
-                        certifications
-                      );
-                      setNewCertification('');
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    createTagHandler(
-                      newCertification,
-                      setCertifications,
-                      certifications
-                    );
-                    setNewCertification('');
-                  }}
-                >
-                  <Award className="mr-2 h-4 w-4" /> Add
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-            <div className="space-y-4">
-              <h3 className="font-headline text-lg font-semibold">
-                Industry Experience
-              </h3>
-              <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                {industries.map((industry) => (
-                  <Badge
-                    key={industry}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    {industry}
-                    <button
-                      type="button"
-                      onClick={() => removeTagHandler(industry, setIndustries)}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newIndustry}
-                  onChange={(e) => setNewIndustry(e.target.value)}
-                  placeholder="e.g. FinTech, Healthcare"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      createTagHandler(newIndustry, setIndustries, industries);
-                      setNewIndustry('');
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    createTagHandler(newIndustry, setIndustries, industries);
-                    setNewIndustry('');
-                  }}
-                >
-                  <Briefcase className="mr-2 h-4 w-4" /> Add
-                </Button>
-              </div>
-            </div>
             <Separator />
             <div className="space-y-4">
               <h3 className="font-headline text-lg font-semibold">
@@ -697,7 +558,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
           <CardFooter className="flex justify-between">
             <div className="flex gap-2">
               <Button variant="outline" asChild>
-                <Link href={`/employees/${employee.id}`}>
+                <Link href={`/resources/${resource.id}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Cancel
                 </Link>
@@ -709,7 +570,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     disabled={isSaving || isDeleting}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Employee
+                    Delete Resource
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -719,7 +580,7 @@ export default function ProfileEditor({ employee }: { employee: Employee }) {
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently delete
-                      the employee profile for {employee.name}.
+                      the resource profile for {resourceName}.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

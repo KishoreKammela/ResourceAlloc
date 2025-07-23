@@ -3,8 +3,8 @@ import type { Timestamp } from 'firebase/firestore';
 export type Project = {
   id: string;
   companyId: string;
-  clientId: string;
-  clientName: string;
+  clientId?: string;
+  clientName?: string;
   projectCode?: string;
   projectName: string;
   projectDescription?: string;
@@ -48,6 +48,4 @@ export type Project = {
   isActive: boolean;
 };
 
-export type UpdatableProjectData = Partial<
-  Omit<Project, 'id' | 'companyId' | 'clientId'>
->;
+export type UpdatableProjectData = Partial<Omit<Project, 'id' | 'companyId'>>;

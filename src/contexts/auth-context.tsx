@@ -38,11 +38,12 @@ import {
   getInvitationByToken,
   updateInvitationStatus,
 } from '@/services/invitations.services';
+import { serverTimestamp } from 'firebase/firestore';
 
 // This union type allows our user object to hold either a TeamMember or a PlatformUser
 export type AuthenticatedUser =
-  | ({ type: 'team' } & TeamMember)
-  | ({ type: 'platform' } & PlatformUser);
+  | ({ type: 'team'; emailVerified: boolean } & TeamMember)
+  | ({ type: 'platform'; emailVerified: boolean } & PlatformUser);
 
 interface AuthContextType {
   user: AuthenticatedUser | null;
@@ -162,6 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         companyName: data.companyName,
         companyWebsite: data.companyWebsite || '',
         companySizeRange: data.companySize,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isActive: true,
       });
 
       const userCredential = await createUserWithEmailAndPassword(
@@ -178,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userProfileData = {
         uid: firebaseUser.uid,
+        email: firebaseUser.email,
         firstName,
         lastName,
         companyId: newCompany.id,
@@ -226,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userProfileData = {
         uid: firebaseUser.uid,
+        email: firebaseUser.email,
         firstName,
         lastName,
         companyId: invitation.companyId,

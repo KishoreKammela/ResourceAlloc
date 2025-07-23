@@ -31,10 +31,12 @@ export default function ClientsPage() {
 
   useEffect(() => {
     async function fetchClients() {
-      if (user?.companyId) {
+      if (user?.type === 'team' && user.companyId) {
         setLoading(true);
         const fetchedClients = await getClients(user.companyId);
         setClients(fetchedClients);
+        setLoading(false);
+      } else {
         setLoading(false);
       }
     }
@@ -89,9 +91,11 @@ export default function ClientsPage() {
               <TableBody>
                 {clients.map((client) => (
                   <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.contactPerson}</TableCell>
-                    <TableCell>{client.email}</TableCell>
+                    <TableCell className="font-medium">
+                      {client.clientName}
+                    </TableCell>
+                    <TableCell>{client.primaryContactName}</TableCell>
+                    <TableCell>{client.primaryContactEmail}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

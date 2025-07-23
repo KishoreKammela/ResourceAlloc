@@ -26,6 +26,18 @@ async function getAuthenticatedUser(request: NextRequest) {
       return null;
     }
   }
+
+  const token = request.nextUrl.searchParams.get('token');
+  if (token) {
+    try {
+      await initAdminApp();
+      const decodedToken = await adminAuth().verifyIdToken(token);
+      return decodedToken;
+    } catch (error) {
+      console.error('Error verifying auth token:', error);
+      return null;
+    }
+  }
   return null;
 }
 

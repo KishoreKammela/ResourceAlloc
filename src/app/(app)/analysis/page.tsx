@@ -16,7 +16,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user || !user.companyId) {
+      if (!user || user.type !== 'team' || !user.companyId) {
         setLoading(false);
         return;
       }
@@ -26,10 +26,13 @@ export default function AnalysisPage() {
         getProjects(user.companyId),
       ]);
 
-      setRequiredSkills([
-        ...new Set(projects.flatMap((p) => p.requiredSkills)),
-      ]);
-      setAvailableSkills([...new Set(resources.flatMap((e) => e.skills))]);
+      const allRequiredSkills = projects.flatMap((p) => p.requiredSkills || []);
+      setRequiredSkills([...new Set(allRequiredSkills)]);
+
+      const allAvailableSkills = resources.flatMap(
+        (e) => e.technicalSkills?.map((s) => s.name) || []
+      );
+      setAvailableSkills([...new Set(allAvailableSkills)]);
       setLoading(false);
     }
 

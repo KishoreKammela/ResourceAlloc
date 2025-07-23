@@ -21,7 +21,7 @@ export default function ResourceEditorPageClient({
 
   useEffect(() => {
     const fetchResource = async () => {
-      if (user && user.companyId) {
+      if (user?.type === 'team' && user.companyId) {
         const res = await getResourceById(resourceId, user.companyId);
         setResource(res);
       }

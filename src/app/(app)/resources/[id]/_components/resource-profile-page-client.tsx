@@ -45,7 +45,7 @@ export default function ResourceProfilePageClient({
 
   useEffect(() => {
     const fetchResource = async () => {
-      if (user && user.companyId) {
+      if (user?.type === 'team' && user.companyId) {
         const res = await getResourceById(resourceId, user.companyId);
         setResource(res);
       }
@@ -87,7 +87,7 @@ export default function ResourceProfilePageClient({
   const canEdit =
     user?.role === 'Admin' ||
     user?.role === 'Super Admin' ||
-    user?.uid === resource.uid;
+    (user?.type === 'team' && user.resourceId === resource.id);
 
   const getWorkModeIcon = (workMode: string) => {
     switch (workMode) {
@@ -112,13 +112,16 @@ export default function ResourceProfilePageClient({
   };
 
   const profileCompletion = calculateProfileCompletion(resource);
+  const resourceName = `${resource.firstName} ${resource.lastName}`;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="font-headline text-3xl font-bold">{resource.name}</h1>
-          <p className="text-xl text-muted-foreground">{resource.title}</p>
+          <h1 className="font-headline text-3xl font-bold">{resourceName}</h1>
+          <p className="text-xl text-muted-foreground">
+            {resource.designation}
+          </p>
         </div>
         <div className="flex w-full gap-2 md:w-auto">
           <Button
@@ -149,13 +152,13 @@ export default function ResourceProfilePageClient({
             <CardContent className="flex flex-col items-center pt-6 text-center">
               <Avatar className="mb-4 h-24 w-24">
                 <AvatarImage
-                  src={`https://i.pravatar.cc/150?u=${resource.name}`}
-                  alt={resource.name}
+                  src={`https://i.pravatar.cc/150?u=${resourceName}`}
+                  alt={resourceName}
                 />
-                <AvatarFallback>{resource.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{resource.firstName.charAt(0)}</AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-semibold">{resource.name}</h2>
-              <p className="text-muted-foreground">{resource.title}</p>
+              <h2 className="text-xl font-semibold">{resourceName}</h2>
+              <p className="text-muted-foreground">{resource.designation}</p>
             </CardContent>
           </Card>
           <Card>
@@ -178,24 +181,26 @@ export default function ResourceProfilePageClient({
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center text-muted-foreground">
                 <CheckCircle
-                  className={`mr-2 h-4 w-4 ${resource.availability === 'Available' ? 'text-accent' : 'text-gray-400'}`}
+                  className={`mr-2 h-4 w-4 ${resource.availabilityStatus === 'Available' ? 'text-accent' : 'text-gray-400'}`}
                 />
-                <span>{resource.availability}</span>
+                <span>{resource.availabilityStatus}</span>
               </div>
               <div className="flex items-center text-muted-foreground">
                 {getWorkModeIcon(resource.workMode)}
                 <span>{resource.workMode}</span>
               </div>
-              {resource.location && (
+              {resource.workLocation && (
                 <div className="flex items-center text-muted-foreground">
                   <MapPin className="mr-2 h-4 w-4" />
-                  <span>{resource.location}</span>
+                  <span>{resource.workLocation}</span>
                 </div>
               )}
-              {resource.yearsOfExperience !== undefined && (
+              {resource.totalExperienceYears !== undefined && (
                 <div className="flex items-center text-muted-foreground">
                   <BarChart className="mr-2 h-4 w-4" />
-                  <span>{resource.yearsOfExperience} Years of Experience</span>
+                  <span>
+                    {resource.totalExperienceYears} Years of Experience
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -207,35 +212,18 @@ export default function ResourceProfilePageClient({
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center text-muted-foreground">
                 <DollarSign className="mr-2 h-4 w-4" />
-                <span>
-                  Salary: {formatCurrency(resource.compensation?.salary)}
-                </span>
+                <span>Salary: {formatCurrency(resource.monthly_salary)}</span>
               </div>
               <div className="flex items-center text-muted-foreground">
                 <DollarSign className="mr-2 h-4 w-4" />
-                <span>
-                  Rate: {formatCurrency(resource.compensation?.billingRate)}/hr
-                </span>
+                <span>Rate: {formatCurrency(resource.billingRate)}/hr</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-8 md:col-span-2">
-          {resource.professionalSummary && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <ClipboardList className="mr-2 h-5 w-5" /> About
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {resource.professionalSummary}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Professional summary will be added in a future step */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
@@ -244,13 +232,13 @@ export default function ResourceProfilePageClient({
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {resource.skills?.map((skill) => (
+                {resource.technicalSkills?.map((skill) => (
                   <Badge
-                    key={skill}
+                    key={skill.name}
                     variant="secondary"
                     className="px-3 py-1 text-base"
                   >
-                    {skill}
+                    {skill.name} ({skill.level})
                   </Badge>
                 ))}
               </div>
@@ -267,39 +255,18 @@ export default function ResourceProfilePageClient({
                 <div className="flex flex-wrap gap-2">
                   {resource.certifications?.map((cert) => (
                     <Badge
-                      key={cert}
+                      key={cert.name}
                       variant="outline"
                       className="px-3 py-1 text-base"
                     >
-                      {cert}
+                      {cert.name}
                     </Badge>
                   ))}
                 </div>
               </CardContent>
             </Card>
           )}
-          {(resource.industryExperience?.length || 0) > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Briefcase className="mr-2 h-5 w-5" /> Industry Experience
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {resource.industryExperience?.map((industry) => (
-                    <Badge
-                      key={industry}
-                      variant="outline"
-                      className="px-3 py-1 text-base"
-                    >
-                      {industry}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Industry experience will be added in a future step */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Documents</CardTitle>

@@ -11,6 +11,7 @@ import {
   updateDoc,
   getDoc,
   deleteDoc,
+  Timestamp,
 } from 'firebase/firestore';
 
 const allocationsCollection = collection(db, 'allocations');
@@ -30,8 +31,8 @@ export async function createAllocation(
   return {
     id: docRef.id,
     ...allocationData,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: Timestamp.now(), // Use client-side timestamp for immediate use
+    updatedAt: Timestamp.now(),
   } as Allocation;
 }
 

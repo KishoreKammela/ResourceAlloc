@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Building, PlusCircle } from 'lucide-react';
+import { serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -31,11 +32,13 @@ import { useAuth } from '@/contexts/auth-context';
 import type { Client } from '@/types/client';
 
 const clientFormSchema = z.object({
-  name: z.string().min(2, 'Client name must be at least 2 characters long.'),
-  contactPerson: z
+  clientName: z
+    .string()
+    .min(2, 'Client name must be at least 2 characters long.'),
+  primaryContactName: z
     .string()
     .min(2, 'Contact person name must be at least 2 characters long.'),
-  email: z.string().email('Please enter a valid email address.'),
+  primaryContactEmail: z.string().email('Please enter a valid email address.'),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -58,14 +61,14 @@ export default function ClientCreator({
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
-      name: '',
-      contactPerson: '',
-      email: '',
+      clientName: '',
+      primaryContactName: '',
+      primaryContactEmail: '',
     },
   });
 
   const onSubmit: SubmitHandler<ClientFormValues> = async (data) => {
-    if (!user?.companyId) {
+    if (!user || user.type !== 'team' || !user.companyId) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -76,14 +79,20 @@ export default function ClientCreator({
 
     setIsSaving(true);
     try {
+      const timestamp = serverTimestamp();
       const newClient = await addClient({
         ...data,
         companyId: user.companyId,
+        createdBy: user.uid,
+        updatedBy: user.uid,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
       });
 
       toast({
         title: 'Client Added',
-        description: `Client "${newClient.name}" has been successfully created.`,
+        description: `Client "${newClient.clientName}" has been successfully created.`,
       });
 
       onClientCreated(newClient);
@@ -125,7 +134,7 @@ export default function ClientCreator({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="clientName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client Name</FormLabel>
@@ -138,7 +147,7 @@ export default function ClientCreator({
             />
             <FormField
               control={form.control}
-              name="contactPerson"
+              name="primaryContactName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact Person</FormLabel>
@@ -151,7 +160,7 @@ export default function ClientCreator({
             />
             <FormField
               control={form.control}
-              name="email"
+              name="primaryContactEmail"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact Email</FormLabel>

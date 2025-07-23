@@ -25,21 +25,20 @@ export function fileToDataUri(file: File): Promise<string> {
 
 export function calculateProfileCompletion(resource: Resource): number {
   let score = 0;
-  const totalPoints = 8; // Increased total points
+  const totalPoints = 8; // Adjust total points based on new fields
 
-  if (resource.professionalSummary) score++;
-  if (resource.skills && resource.skills.length > 0) score++;
-  if (resource.location) score++;
-  if (resource.compensation?.salary) score++;
-  if (resource.compensation?.billingRate) score++;
+  if (resource.designation) score++;
+  if (resource.technicalSkills && resource.technicalSkills.length > 0) score++;
+  if (resource.workLocation) score++;
+  if (resource.billingRate) score++;
   if (
-    resource.yearsOfExperience !== undefined &&
-    resource.yearsOfExperience > 0
+    resource.totalExperienceYears !== undefined &&
+    resource.totalExperienceYears > 0
   )
     score++;
   if (resource.certifications && resource.certifications.length > 0) score++;
-  if (resource.industryExperience && resource.industryExperience.length > 0)
-    score++;
+  // Add other fields as they are implemented in the UI
+  score += 2; // Placeholder for other fields
 
   return Math.round((score / totalPoints) * 100);
 }

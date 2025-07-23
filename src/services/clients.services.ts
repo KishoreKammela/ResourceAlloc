@@ -26,7 +26,7 @@ export async function getClients(companyId: string): Promise<Client[]> {
     const q = query(
       clientsCollection,
       where('companyId', '==', companyId),
-      orderBy('name', 'asc')
+      orderBy('clientName', 'asc')
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(

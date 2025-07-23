@@ -21,7 +21,7 @@ const usersCollection = collection(db, 'team_members'); // Changed collection na
  */
 export async function createTeamMemberProfile(
   uid: string,
-  userData: Omit<TeamMember, 'createdAt' | 'updatedAt' | 'emailVerified'>
+  userData: Omit<TeamMember, 'createdAt' | 'updatedAt'>
 ): Promise<void> {
   const timestamp = serverTimestamp();
   await setDoc(doc(db, 'team_members', uid), {
@@ -38,15 +38,12 @@ export async function createTeamMemberProfile(
  */
 export async function getTeamMemberProfile(
   uid: string
-): Promise<Omit<TeamMember, 'uid' | 'email' | 'emailVerified'> | null> {
+): Promise<Omit<TeamMember, 'uid'> | null> {
   const docRef = doc(db, 'team_members', uid);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    return docSnap.data() as Omit<
-      TeamMember,
-      'uid' | 'email' | 'emailVerified'
-    >;
+    return docSnap.data() as Omit<TeamMember, 'uid'>;
   } else {
     return null;
   }

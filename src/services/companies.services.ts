@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase/config';
 import type { Company } from '@/types/company';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const companiesCollection = collection(db, 'companies');
 

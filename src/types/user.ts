@@ -13,7 +13,6 @@ export type TeamMember = {
   uid: string; // Firebase Auth UID
   companyId: string;
   email: string | null;
-  emailVerified?: boolean;
 
   // Personal Info
   firstName: string;

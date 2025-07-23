@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { Resource } from '@/types/resource';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useState } from 'react';
 import EmptyState from '@/components/app/empty-state';
 import { Users } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -35,7 +34,7 @@ export default function ResourcesClientPage({
     switch (availability) {
       case 'Available':
         return 'text-accent border-accent';
-      case 'On Project':
+      case 'Partially Available':
         return 'text-orange-500 border-orange-500';
       default:
         return 'text-foreground';
@@ -87,68 +86,73 @@ export default function ResourcesClientPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resources.map((resource: Resource) => (
-                <TableRow
-                  key={resource.id}
-                  data-state={
-                    selectedResources.includes(resource.id) ? 'selected' : ''
-                  }
-                >
-                  <TableCell>
-                    <Checkbox
-                      onCheckedChange={(checked) =>
-                        handleSelectRow(resource.id, !!checked)
-                      }
-                      checked={selectedResources.includes(resource.id)}
-                      aria-label={`Select ${resource.name}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage
-                          src={`https://i.pravatar.cc/150?u=${resource.name}`}
-                          alt={resource.name}
-                        />
-                        <AvatarFallback>
-                          {resource.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <Link
-                        href={`/resources/${resource.id}`}
-                        className="font-semibold text-primary hover:underline"
+              {resources.map((resource: Resource) => {
+                const resourceName = `${resource.firstName} ${resource.lastName}`;
+                return (
+                  <TableRow
+                    key={resource.id}
+                    data-state={
+                      selectedResources.includes(resource.id) ? 'selected' : ''
+                    }
+                  >
+                    <TableCell>
+                      <Checkbox
+                        onCheckedChange={(checked) =>
+                          handleSelectRow(resource.id, !!checked)
+                        }
+                        checked={selectedResources.includes(resource.id)}
+                        aria-label={`Select ${resourceName}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage
+                            src={`https://i.pravatar.cc/150?u=${resourceName}`}
+                            alt={resourceName}
+                          />
+                          <AvatarFallback>
+                            {resource.firstName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Link
+                          href={`/resources/${resource.id}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          {resourceName}
+                        </Link>
+                      </div>
+                    </TableCell>
+                    <TableCell>{resource.designation}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(resource.technicalSkills || [])
+                          .slice(0, 3)
+                          .map((skill) => (
+                            <Badge key={skill.name} variant="secondary">
+                              {skill.name}
+                            </Badge>
+                          ))}
+                        {(resource.technicalSkills?.length || 0) > 3 && (
+                          <Badge variant="outline">
+                            +{(resource.technicalSkills?.length || 0) - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={getAvailabilityBadgeClass(
+                          resource.availabilityStatus
+                        )}
                       >
-                        {resource.name}
-                      </Link>
-                    </div>
-                  </TableCell>
-                  <TableCell>{resource.title}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {resource.skills.slice(0, 3).map((skill) => (
-                        <Badge key={skill} variant="secondary">
-                          {skill}
-                        </Badge>
-                      ))}
-                      {resource.skills.length > 3 && (
-                        <Badge variant="outline">
-                          +{resource.skills.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={getAvailabilityBadgeClass(
-                        resource.availability
-                      )}
-                    >
-                      {resource.availability}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {resource.availabilityStatus}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         ) : (

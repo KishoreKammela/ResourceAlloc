@@ -50,6 +50,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
         router.push('/verify-email');
         isRedirectingNow = true;
       } else if (
+        user.type === 'team' &&
         user.emailVerified &&
         !user.onboardingCompleted &&
         !pathname.startsWith('/onboarding/create-profile')
@@ -58,7 +59,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
         isRedirectingNow = true;
       } else if (
         user.emailVerified &&
-        user.onboardingCompleted &&
+        (user.type === 'platform' || user.onboardingCompleted) &&
         isPublicPath
       ) {
         router.push('/dashboard');

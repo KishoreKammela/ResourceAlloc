@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getResourceById } from '@/services/resources.services';
-import type { Resource } from '@/types/resource';
+import type { Resource, Skill } from '@/types/resource';
 import { Loader2, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import {
   Table,
@@ -33,7 +33,7 @@ export default function ResourceComparisonClient() {
 
   useEffect(() => {
     async function fetchResources() {
-      if (!user || !user.companyId) {
+      if (user?.type !== 'team' || !user.companyId) {
         setLoading(false);
         return;
       }
@@ -70,7 +70,7 @@ export default function ResourceComparisonClient() {
   const allSkills = useMemo(() => {
     const skillSet = new Set<string>();
     resources.forEach((res) => {
-      res.skills.forEach((skill) => skillSet.add(skill));
+      res.technicalSkills?.forEach((skill: Skill) => skillSet.add(skill.name));
     });
     return Array.from(skillSet).sort();
   }, [resources]);
@@ -141,25 +141,30 @@ export default function ResourceComparisonClient() {
               <TableHead className="sticky left-0 top-0 z-10 w-48 bg-muted font-semibold">
                 Attribute
               </TableHead>
-              {resources.map((resource) => (
-                <TableHead key={resource.id} className="w-64 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage
-                        src={`https://i.pravatar.cc/150?u=${resource.name}`}
-                        alt={resource.name}
-                      />
-                      <AvatarFallback>{resource.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <Link
-                      href={`/resources/${resource.id}`}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {resource.name}
-                    </Link>
-                  </div>
-                </TableHead>
-              ))}
+              {resources.map((resource) => {
+                const resourceName = `${resource.firstName} ${resource.lastName}`;
+                return (
+                  <TableHead key={resource.id} className="w-64 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage
+                          src={`https://i.pravatar.cc/150?u=${resourceName}`}
+                          alt={resourceName}
+                        />
+                        <AvatarFallback>
+                          {resource.firstName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Link
+                        href={`/resources/${resource.id}`}
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        {resourceName}
+                      </Link>
+                    </div>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -169,7 +174,7 @@ export default function ResourceComparisonClient() {
               </TableCell>
               {resources.map((resource) => (
                 <TableCell key={resource.id} className="text-center">
-                  {resource.title}
+                  {resource.designation}
                 </TableCell>
               ))}
             </TableRow>
@@ -181,17 +186,17 @@ export default function ResourceComparisonClient() {
                 <TableCell key={resource.id} className="text-center">
                   <Badge
                     variant={
-                      resource.availability === 'Available'
+                      resource.availabilityStatus === 'Available'
                         ? 'default'
                         : 'secondary'
                     }
                     className={
-                      resource.availability === 'Available'
+                      resource.availabilityStatus === 'Available'
                         ? 'border-accent bg-accent/10 text-accent'
                         : ''
                     }
                   >
-                    {resource.availability}
+                    {resource.availabilityStatus}
                   </Badge>
                 </TableCell>
               ))}
@@ -212,7 +217,7 @@ export default function ResourceComparisonClient() {
               </TableCell>
               {resources.map((resource) => (
                 <TableCell key={resource.id} className="text-center">
-                  {resource.location || 'N/A'}
+                  {resource.workLocation || 'N/A'}
                 </TableCell>
               ))}
             </TableRow>
@@ -222,7 +227,7 @@ export default function ResourceComparisonClient() {
               </TableCell>
               {resources.map((resource) => (
                 <TableCell key={resource.id} className="text-center">
-                  {formatCurrency(resource.compensation?.salary)}
+                  {formatCurrency(resource.monthly_salary)}
                 </TableCell>
               ))}
             </TableRow>
@@ -232,7 +237,7 @@ export default function ResourceComparisonClient() {
               </TableCell>
               {resources.map((resource) => (
                 <TableCell key={resource.id} className="text-center">
-                  {formatCurrency(resource.compensation?.billingRate)}/hr
+                  {formatCurrency(resource.billingRate)}/hr
                 </TableCell>
               ))}
             </TableRow>
@@ -254,7 +259,7 @@ export default function ResourceComparisonClient() {
                 </TableCell>
                 {resources.map((resource) => (
                   <TableCell key={resource.id} className="text-center">
-                    {resource.skills.includes(skill) ? (
+                    {resource.technicalSkills?.some((s) => s.name === skill) ? (
                       <CheckCircle className="mx-auto h-5 w-5 text-accent" />
                     ) : (
                       <XCircle className="mx-auto h-5 w-5 text-muted-foreground/50" />

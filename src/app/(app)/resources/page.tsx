@@ -21,7 +21,7 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     async function fetchResources() {
-      if (user && user.companyId) {
+      if (user?.type === 'team' && user.companyId) {
         const res = await getResources(user.companyId);
         setResources(res);
       }
