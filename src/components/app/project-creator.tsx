@@ -56,6 +56,7 @@ import { getEmployees } from '@/services/employees.services';
 import { getClients } from '@/services/clients.services';
 import { useAuth } from '@/contexts/auth-context';
 import type { Client } from '@/types/client';
+import type { Project } from '@/types/project';
 
 const projectFormSchema = z.object({
   name: z.string().min(2, 'Project name must be at least 2 characters long.'),
@@ -179,17 +180,21 @@ export default function ProjectCreator() {
           ? undefined
           : clients.find((c) => c.id === clientId);
 
-      const newProject = await addProject({
+      const projectData: Omit<Project, 'id'> = {
         name,
         companyId: user.companyId,
-        clientId: selectedClient?.id,
-        clientName: selectedClient?.name,
         requiredSkills,
         team: team,
         status: 'Planning',
         timeline: 'TBD',
         description: 'No description provided.',
-      });
+        ...(selectedClient && {
+          clientId: selectedClient.id,
+          clientName: selectedClient.name,
+        }),
+      };
+
+      const newProject = await addProject(projectData);
 
       toast({
         title: 'Project Created',
