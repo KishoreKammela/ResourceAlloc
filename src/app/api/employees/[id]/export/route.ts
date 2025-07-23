@@ -1,6 +1,5 @@
 // /src/app/api/employees/[id]/export/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getEmployeeById } from '@/services/employees.services';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { CellHookData } from 'jspdf-autotable';

@@ -56,6 +56,7 @@ export type Resource = {
   // Employment Details
   joiningDate?: Timestamp;
   workMode: 'Remote' | 'Hybrid' | 'On-site';
+  workLocation:string;
   employmentStatus: 'active' | 'inactive' | 'on_leave' | 'bench';
 
   // Experience & Education

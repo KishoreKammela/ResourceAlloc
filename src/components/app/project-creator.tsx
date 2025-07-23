@@ -52,7 +52,6 @@ import { Badge } from '../ui/badge';
 import type { SuggestCandidatesOutput } from '@/ai/flows/suggest-candidates';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import type { Employee } from '@/types/employee';
-import { getEmployees } from '@/services/employees.services';
 import { getClients } from '@/services/clients.services';
 import { useAuth } from '@/contexts/auth-context';
 import type { Client } from '@/types/client';

@@ -3,7 +3,6 @@
 import { notFound, useRouter } from 'next/navigation';
 import { getProjectById } from '@/services/projects.services';
 import ProjectEditor from '@/components/app/project-editor';
-import { getEmployees } from '@/services/employees.services';
 import { useEffect, useState } from 'react';
 import type { Project } from '@/types/project';
 import type { Employee } from '@/types/employee';
