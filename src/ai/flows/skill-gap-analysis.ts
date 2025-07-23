@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for analyzing skill gaps between project requirements and available employee skills.
+ * @fileOverview This file defines a Genkit flow for analyzing skill gaps between project requirements and available resource skills.
  *
  * - performSkillGapAnalysis - A function that takes required and available skills and returns an analysis.
  * - SkillGapAnalysisInput - The input type for the performSkillGapAnalysis function.
@@ -17,7 +17,7 @@ const SkillGapAnalysisInputSchema = z.object({
     .describe('A list of skills required by all projects.'),
   availableSkills: z
     .array(z.string())
-    .describe('A list of skills available from all employees.'),
+    .describe('A list of skills available from all resources.'),
 });
 export type SkillGapAnalysisInput = z.infer<typeof SkillGapAnalysisInputSchema>;
 
@@ -25,7 +25,7 @@ const SkillGapAnalysisOutputSchema = z.object({
   missingSkills: z
     .array(z.string())
     .describe(
-      'A list of skills that are required by projects but are not available in the employee pool.'
+      'A list of skills that are required by projects but are not available in the resource pool.'
     ),
   analysisSummary: z
     .string()
@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
   output: { schema: SkillGapAnalysisOutputSchema },
   prompt: `You are an expert HR strategist and talent development consultant.
 
-Your task is to analyze the gap between the skills required for our company's projects and the skills currently available in our employee pool.
+Your task is to analyze the gap between the skills required for our company's projects and the skills currently available in our resource pool.
 
 Based on the provided lists, identify the skills that are missing. 
 Provide a concise, high-level summary of our situation.

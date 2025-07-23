@@ -26,25 +26,29 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import {
-  createUserProfile,
-  getUserProfile,
-  updateUserProfile,
+  createTeamMemberProfile,
+  getTeamMemberProfile,
 } from '@/services/users.services';
-import type { AppUser, NewCompanyUser } from '@/types/user';
-import { usePathname, useRouter } from 'next/navigation';
+import { getPlatformUserProfile } from '@/services/platform-users.services';
+import type { TeamMember, NewCompanyAdmin } from '@/types/user';
+import type { PlatformUser } from '@/types/platform-user';
 import { addCompany } from '@/services/companies.services';
-import { addEmployee, getEmployeeById } from '@/services/employees.services';
 import { addAuditLog } from '@/services/audit.services';
 import {
   getInvitationByToken,
   updateInvitationStatus,
 } from '@/services/invitations.services';
 
+// This union type allows our user object to hold either a TeamMember or a PlatformUser
+export type AuthenticatedUser =
+  | ({ type: 'team' } & TeamMember)
+  | ({ type: 'platform' } & PlatformUser);
+
 interface AuthContextType {
-  user: AppUser | null;
+  user: AuthenticatedUser | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ mfa: boolean } | undefined>;
-  signup: (data: NewCompanyUser) => Promise<any>;
+  signup: (data: NewCompanyAdmin) => Promise<any>;
   invitedUserSignup: (
     name: string,
     email: string,
@@ -61,36 +65,43 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [mfaResolver, setMfaResolver] =
     useState<AuthContextType['mfaResolver']>(null);
-  const router = useRouter();
-  const pathname = usePathname();
 
   const fetchUser = async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
-      // First, get the user profile from Firestore, which contains the role
-      const userProfile = await getUserProfile(firebaseUser.uid);
-      if (userProfile) {
-        // Only once we have the profile, we create the full user object
-        const fullUser: AppUser = {
-          ...userProfile,
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
+      // 1. First, check if the user is a Platform User
+      const platformUserProfile = await getPlatformUserProfile(
+        firebaseUser.uid
+      );
+      if (platformUserProfile) {
+        setUser({
+          ...platformUserProfile,
+          type: 'platform',
           emailVerified: firebaseUser.emailVerified,
-        };
-        setUser(fullUser);
+        });
       } else {
-        // If there's a Firebase user but no profile, it's an inconsistent state.
-        // Log them out to be safe.
-        await signOut(auth);
-        setUser(null);
+        // 2. If not a platform user, check if they are a Team Member
+        const teamMemberProfile = await getTeamMemberProfile(firebaseUser.uid);
+        if (teamMemberProfile) {
+          setUser({
+            ...teamMemberProfile,
+            type: 'team',
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            emailVerified: firebaseUser.emailVerified,
+          });
+        } else {
+          // Inconsistent state: Firebase user exists but has no profile anywhere.
+          await signOut(auth);
+          setUser(null);
+        }
       }
     } else {
       setUser(null);
     }
-    // Only set loading to false after all async operations are complete
     setLoading(false);
   };
 
@@ -101,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshUser = async () => {
@@ -145,13 +155,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: NewCompanyUser) => {
+  const signup = async (data: NewCompanyAdmin) => {
     setLoading(true);
     try {
       const newCompany = await addCompany({
-        name: data.companyName,
-        website: data.companyWebsite || '',
-        size: data.companySize,
+        companyName: data.companyName,
+        companyWebsite: data.companyWebsite || '',
+        companySizeRange: data.companySize,
       });
 
       const userCredential = await createUserWithEmailAndPassword(
@@ -163,23 +173,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await sendEmailVerification(firebaseUser);
 
-      const userProfileData: Omit<AppUser, 'emailVerified' | 'email'> = {
+      const [firstName, ...lastNameParts] = data.name.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      const userProfileData = {
         uid: firebaseUser.uid,
-        name: data.name,
+        firstName,
+        lastName,
         companyId: newCompany.id,
         role: 'Super Admin' as const,
         onboardingCompleted: true, // Super Admin doesn't need to create a profile
+        isActive: true,
       };
 
-      await createUserProfile(firebaseUser.uid, userProfileData);
+      await createTeamMemberProfile(firebaseUser.uid, userProfileData);
 
       await addAuditLog({
         event: 'user_created',
         userId: firebaseUser.uid,
         details: `New company user registered: ${firebaseUser.email}`,
       });
-
-      // The onAuthStateChanged listener will handle setting the user state.
     } catch (error) {
       setLoading(false);
       throw error;
@@ -194,13 +207,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setLoading(true);
     try {
-      // 1. Validate the token again to be sure
       const invitation = await getInvitationByToken(token);
       if (!invitation) {
         throw new Error('Invitation is invalid or has expired.');
       }
 
-      // 2. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -208,23 +219,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       const firebaseUser = userCredential.user;
 
-      // 3. Send verification email
       await sendEmailVerification(firebaseUser);
 
-      // 4. Create user profile in Firestore
-      const userProfileData: Omit<AppUser, 'emailVerified' | 'email'> = {
+      const [firstName, ...lastNameParts] = name.split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      const userProfileData = {
         uid: firebaseUser.uid,
-        name: name,
+        firstName,
+        lastName,
         companyId: invitation.companyId,
         role: invitation.role,
-        onboardingCompleted: false, // User needs to complete their profile
+        onboardingCompleted: false,
+        isActive: true,
       };
-      await createUserProfile(firebaseUser.uid, userProfileData);
+      await createTeamMemberProfile(firebaseUser.uid, userProfileData);
 
-      // 5. Update invitation status to 'accepted'
       await updateInvitationStatus(invitation.id, 'accepted');
 
-      // 6. Log the event
       await addAuditLog({
         event: 'user_created',
         userId: firebaseUser.uid,
@@ -272,12 +284,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentUser.email,
         currentPass
       );
-      // Re-authenticate the user to ensure they are the rightful owner
       await reauthenticateWithCredential(currentUser, credential);
-      // If re-authentication is successful, update the password
       await updatePassword(currentUser, newPass);
     } catch (error) {
-      // Re-throw the error to be caught by the calling component
       throw error;
     } finally {
       setLoading(false);

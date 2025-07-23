@@ -1,7 +1,5 @@
-'use client';
-
 import { db } from '@/lib/firebase/config';
-import type { AppUser } from '@/types/user';
+import type { TeamMember } from '@/types/user';
 import {
   doc,
   getDoc,
@@ -11,43 +9,79 @@ import {
   query,
   where,
   getDocs,
+  serverTimestamp,
 } from 'firebase/firestore';
 
-const usersCollection = collection(db, 'users');
+const usersCollection = collection(db, 'team_members'); // Changed collection name
 
-export async function createUserProfile(
+/**
+ * Creates a new team member profile in the 'team_members' collection.
+ * @param uid The Firebase Auth UID of the user.
+ * @param userData The user data to be stored.
+ */
+export async function createTeamMemberProfile(
   uid: string,
-  userData: Omit<AppUser, 'emailVerified' | 'email'>
+  userData: Omit<TeamMember, 'createdAt' | 'updatedAt' | 'emailVerified'>
 ): Promise<void> {
-  await setDoc(doc(db, 'users', uid), userData);
+  const timestamp = serverTimestamp();
+  await setDoc(doc(db, 'team_members', uid), {
+    ...userData,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
 }
 
-export async function getUserProfile(
+/**
+ * Retrieves a team member's profile from Firestore.
+ * @param uid The Firebase Auth UID of the user.
+ * @returns The team member's profile object, or null if not found.
+ */
+export async function getTeamMemberProfile(
   uid: string
-): Promise<Omit<AppUser, 'emailVerified' | 'email'> | null> {
-  const docRef = doc(db, 'users', uid);
+): Promise<Omit<TeamMember, 'uid' | 'email' | 'emailVerified'> | null> {
+  const docRef = doc(db, 'team_members', uid);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    return docSnap.data() as Omit<AppUser, 'emailVerified' | 'email'>;
+    return docSnap.data() as Omit<
+      TeamMember,
+      'uid' | 'email' | 'emailVerified'
+    >;
   } else {
     return null;
   }
 }
 
-export async function updateUserProfile(
+/**
+ * Updates a team member's profile.
+ * @param uid The Firebase Auth UID of the user.
+ * @param data The partial data to update.
+ */
+export async function updateTeamMemberProfile(
   uid: string,
-  data: Partial<AppUser>
+  data: Partial<TeamMember>
 ): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, data);
+  const userRef = doc(db, 'team_members', uid);
+  await updateDoc(userRef, {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
 }
 
-export async function getUsersByCompany(companyId: string): Promise<AppUser[]> {
+/**
+ * Fetches all team members for a specific company.
+ * @param companyId The ID of the company.
+ * @returns An array of team member objects.
+ */
+export async function getTeamMembersByCompany(
+  companyId: string
+): Promise<TeamMember[]> {
   try {
     const q = query(usersCollection, where('companyId', '==', companyId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ ...doc.data() }) as AppUser);
+    return snapshot.docs.map(
+      (doc) => ({ ...doc.data(), uid: doc.id }) as TeamMember
+    );
   } catch (error) {
     console.error('Error fetching users by company: ', error);
     return [];

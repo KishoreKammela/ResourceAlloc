@@ -1,7 +1,7 @@
 'use server';
 
 import { createInvitation } from '@/services/invitations.services';
-import { getUsersByCompany } from '@/services/users.services';
+import { getTeamMembersByCompany } from '@/services/users.services';
 import type { Invitation } from '@/types/invitation';
 import type { UserRole } from '@/types/user';
 
@@ -12,7 +12,7 @@ export async function handleCreateInvitation(
 ): Promise<{ invitation: Invitation | null; error: string | null }> {
   try {
     // Check if user with this email already exists in the company
-    const existingUsers = await getUsersByCompany(companyId);
+    const existingUsers = await getTeamMembersByCompany(companyId);
     if (existingUsers.some((user) => user.email === email)) {
       return {
         invitation: null,

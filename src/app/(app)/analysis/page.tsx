@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import SkillGapAnalyzer from '@/components/app/skill-gap-analyzer';
-import { getEmployees } from '@/services/employees.services';
+import { getResources } from '@/services/resources.services';
 import { getProjects } from '@/services/projects.services';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -21,15 +21,15 @@ export default function AnalysisPage() {
         return;
       }
 
-      const [employees, projects] = await Promise.all([
-        getEmployees(user.companyId),
+      const [resources, projects] = await Promise.all([
+        getResources(user.companyId),
         getProjects(user.companyId),
       ]);
 
       setRequiredSkills([
         ...new Set(projects.flatMap((p) => p.requiredSkills)),
       ]);
-      setAvailableSkills([...new Set(employees.flatMap((e) => e.skills))]);
+      setAvailableSkills([...new Set(resources.flatMap((e) => e.skills))]);
       setLoading(false);
     }
 

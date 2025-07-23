@@ -8,9 +8,8 @@ This platform addresses the complexity of managing technical talent across vario
 
 For a full breakdown of the project's vision, features, and technical details, please refer to the documentation in the `/docs` directory.
 
-- **[Product Introduction](./docs/INTRODUCTION.md)**: Learn about the problem we're solving, our target market, and our unique value proposition.
-- **[Phase 1 Features](./docs/FEATURES_PHASE_1.md)**: Details on the foundational features, including user management, employee profiles, and basic requirement matching.
-- **[Phase 2 Features](./docs/FEATURES_PHASE_2.md)**: Details on advanced features like ML-powered matching, predictive analytics, and the client collaboration portal.
+- **[Product Enhancement Plan](./src/docs/PRODUCT_ENHANCEMENT_PLAN.md)**: **(CURRENT PLAN)** This document outlines the strategic enhancements for the platform, serving as the primary roadmap for the next phase of development.
+- **[Product Overview](./src/docs/PRODUCT_OVERVIEW.md)**: A detailed walkthrough of the platform's features and a step-by-step analysis of the user journey.
 - **[Technical Framework](./docs/TECHNICAL_FRAMEWORK.md)**: A deep dive into the skills taxonomy and role categorization that form the backbone of our platform.
 
 ## Getting Started

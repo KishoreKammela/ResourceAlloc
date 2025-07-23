@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, ArrowRight, Building, UserPlus } from 'lucide-react';
+import { Loader2, ArrowRight, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -95,7 +95,7 @@ export default function CompanySignupForm() {
         title: 'Registration Successful',
         description: 'Welcome! Your company account has been created.',
       });
-      router.push('/dashboard');
+      // The auth listener will handle redirection
     } catch (error) {
       toast({
         variant: 'destructive',

@@ -17,13 +17,21 @@ import {
   type GenerateProjectReportOutput,
 } from '@/ai/flows/generate-project-report';
 
-import { updateEmployee, deleteEmployee } from '@/services/employees.services';
-import { updateProject, deleteProject } from '@/services/projects.services';
+import {
+  updateResource,
+  deleteResource,
+  addResource,
+} from '@/services/resources.services';
+import {
+  updateProject,
+  deleteProject,
+  addProject,
+} from '@/services/projects.services';
 
-import type { UpdatableEmployeeData } from '@/types/employee';
-import type { UpdatableProjectData } from '@/types/project';
+import type { UpdatableResourceData, Resource } from '@/types/resource';
+import type { UpdatableProjectData, Project } from '@/types/project';
 
-// Employee Actions
+// Resource Actions
 export async function analyzeResume(resumeDataUri: string) {
   try {
     // We run them in parallel to speed up the process
@@ -48,34 +56,34 @@ export async function analyzeResume(resumeDataUri: string) {
   }
 }
 
-export async function handleUpdateEmployee(
-  employeeId: string,
-  employeeData: UpdatableEmployeeData
+export async function handleUpdateResource(
+  resourceId: string,
+  resourceData: UpdatableResourceData
 ) {
   try {
-    const updated = await updateEmployee(employeeId, employeeData);
+    const updated = await updateResource(resourceId, resourceData);
     if (!updated) {
-      throw new Error('Employee not found');
+      throw new Error('Resource not found');
     }
     return {
-      employee: updated,
+      resource: updated,
       error: null,
     };
   } catch (e: any) {
     console.error(e);
     const error = e instanceof Error ? e.message : 'An unknown error occurred.';
     return {
-      employee: null,
-      error: `Failed to update employee: ${error}`,
+      resource: null,
+      error: `Failed to update resource: ${error}`,
     };
   }
 }
 
-export async function handleDeleteEmployee(employeeId: string) {
+export async function handleDeleteResource(resourceId: string) {
   try {
-    const success = await deleteEmployee(employeeId);
+    const success = await deleteResource(resourceId);
     if (!success) {
-      throw new Error('Employee not found or could not be deleted.');
+      throw new Error('Resource not found or could not be deleted.');
     }
     return {
       success: true,
@@ -86,7 +94,7 @@ export async function handleDeleteEmployee(employeeId: string) {
     const error = e instanceof Error ? e.message : 'An unknown error occurred.';
     return {
       success: false,
-      error: `Failed to delete employee: ${error}`,
+      error: `Failed to delete resource: ${error}`,
     };
   }
 }

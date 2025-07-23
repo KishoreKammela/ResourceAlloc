@@ -1,31 +1,44 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type UserRole =
   | 'Super Admin'
   | 'Admin'
-  | 'Recruiter'
   | 'Project Manager'
-  | 'Employee';
+  | 'HR Manager'
+  | 'Account Manager'
+  | 'Viewer'
+  | 'Employee'; // Added for backward compatibility, should be phased out.
 
-export type AppUser = {
-  uid: string;
+export type TeamMember = {
+  uid: string; // Firebase Auth UID
+  companyId: string;
   email: string | null;
-  role: UserRole;
   emailVerified?: boolean;
-  name?: string;
-  companyId?: string;
-  onboardingCompleted?: boolean;
-  employeeId?: string; // Link to the employee record
-  // New profile fields
-  avatarUrl?: string;
-  mobile?: string;
-  gender?: 'Male' | 'Female' | 'Other';
-  dateOfBirth?: string; // Storing as ISO string e.g., "1990-01-01"
-  address?: {
-    city?: string;
-    state?: string;
-  };
+
+  // Personal Info
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  profilePictureUrl?: string;
+
+  // Professional Info
+  designation?: string;
+  department?: 'Sales' | 'Operations' | 'HR' | 'Technical' | 'Management';
+
+  // Access & Permissions
+  role: UserRole;
+  isActive: boolean;
+
+  // Onboarding
+  onboardingCompleted: boolean;
+  resourceId?: string; // Link to the resource record if applicable
+
+  // Audit
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
-export interface NewCompanyUser {
+export interface NewCompanyAdmin {
   name: string;
   email: string;
   password: string;

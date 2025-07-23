@@ -33,28 +33,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { updateUserProfile } from '@/services/users.services';
-import type { AppUser } from '@/types/user';
+import { updateTeamMemberProfile } from '@/services/users.services';
+import type { TeamMember } from '@/types/user';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { Separator } from '../ui/separator';
+import { AuthenticatedUser } from '@/contexts/auth-context';
 
 const profileFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  firstName: z.string().min(1, 'First name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
   email: z.string().email(),
-  mobile: z.string().optional(),
+  phone: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   dateOfBirth: z.date().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
+  designation: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 type UserProfileFormProps = {
-  user: AppUser;
+  user: AuthenticatedUser;
   onUpdate: () => Promise<void>;
 };
 
@@ -69,29 +70,36 @@ export default function UserProfileForm({
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user.name || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
       email: user.email || '',
-      mobile: user.mobile || '',
+      phone: user.phone || '',
       gender: user.gender,
       dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : undefined,
-      city: user.address?.city || '',
-      state: user.address?.state || '',
+      designation: user.designation || '',
     },
   });
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
+    if (user.type !== 'team') {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Only company team members can update their profile here.',
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const { city, state, ...rest } = data;
-      const updatedData: Partial<AppUser> = {
-        ...rest,
+      const updatedData: Partial<TeamMember> = {
+        ...data,
         dateOfBirth: data.dateOfBirth
           ? data.dateOfBirth.toISOString().split('T')[0]
           : undefined,
-        address: { city, state },
       };
 
-      await updateUserProfile(user.uid, updatedData);
+      await updateTeamMemberProfile(user.uid, updatedData);
       await onUpdate(); // Refresh user data in context
 
       toast({
@@ -120,6 +128,8 @@ export default function UserProfileForm({
     });
   };
 
+  const displayName = `${user.firstName} ${user.lastName}`;
+
   return (
     <Card>
       <CardHeader>
@@ -134,9 +144,9 @@ export default function UserProfileForm({
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                  <AvatarImage src={user.profilePictureUrl} alt={displayName} />
                   <AvatarFallback className="text-3xl">
-                    {user.name?.charAt(0).toUpperCase() ?? <User />}
+                    {user.firstName?.charAt(0).toUpperCase() ?? <User />}
                   </AvatarFallback>
                 </Avatar>
                 <input
@@ -159,7 +169,7 @@ export default function UserProfileForm({
               </div>
               <div>
                 <h3 className="font-headline text-2xl font-bold">
-                  {user.name}
+                  {displayName}
                 </h3>
                 <p className="text-muted-foreground">{user.role}</p>
               </div>
@@ -170,17 +180,32 @@ export default function UserProfileForm({
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="name"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your full name" {...field} />
+                      <Input placeholder="Your first name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your last name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="email"
@@ -199,16 +224,37 @@ export default function UserProfileForm({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Designation</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Project Manager"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="mobile"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mobile Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="(123) 456-7890" {...field} />
+                      <Input
+                        placeholder="(123) 456-7890"
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -281,34 +327,6 @@ export default function UserProfileForm({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Home City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. New York" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State/Province</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. NY" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
           </CardContent>
           <CardFooter className="flex justify-end border-t pt-6">
             <Button type="submit" disabled={isSaving}>

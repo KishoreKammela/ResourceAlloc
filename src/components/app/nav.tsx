@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const primaryNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, tooltip: 'Dashboard' },
-  { href: '/employees', label: 'Employees', icon: Users, tooltip: 'Employees' },
+  { href: '/resources', label: 'Resources', icon: Users, tooltip: 'Resources' },
   { href: '/clients', label: 'Clients', icon: Building, tooltip: 'Clients' },
   {
     href: '/projects',
@@ -57,10 +57,10 @@ const primaryNavItems = [
 
 const secondaryNavItems = [
   {
-    href: '/employees/new',
-    label: 'Add Employee',
+    href: '/resources/new',
+    label: 'Add Resource',
     icon: UserPlus,
-    tooltip: 'Add New Employee',
+    tooltip: 'Add New Resource',
     adminOnly: true,
   },
   {
@@ -115,18 +115,20 @@ function UserMenu() {
 
   if (!user) return null;
 
+  const displayName = `${user.firstName} ${user.lastName}`;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="w-full">
         <div className="group/menu-item flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
           <Avatar className="h-7 w-7">
-            <AvatarImage src={user.avatarUrl} alt="User Avatar" />
+            <AvatarImage src={user.profilePictureUrl} alt="User Avatar" />
             <AvatarFallback>
-              {user.name?.charAt(0).toUpperCase() ?? 'U'}
+              {user.firstName?.charAt(0).toUpperCase() ?? 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col items-start truncate group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold">{user.name}</span>
+            <span className="font-semibold">{displayName}</span>
             <span className="text-xs text-muted-foreground group-hover:text-sidebar-accent-foreground">
               {user.email}
             </span>
@@ -136,7 +138,7 @@ function UserMenu() {
       <DropdownMenuContent className="w-56" align="start" side="right">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.name}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
@@ -169,6 +171,22 @@ function UserMenu() {
 export function Nav() {
   const pathname = usePathname();
   const { user } = useAuth();
+
+  // If the user is not a team member, don't show the regular navigation.
+  // This can be expanded later with a dedicated Platform Admin dashboard.
+  if (!user || user.type === 'platform') {
+    return (
+      <div className="flex h-full flex-col p-2">
+        <div className="mt-auto">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <UserMenu />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+      </div>
+    );
+  }
 
   const isUserAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
 

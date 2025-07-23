@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import Dashboard from '@/components/app/dashboard';
-import { getEmployees } from '@/services/employees.services';
+import { getResources } from '@/services/resources.services';
 import { getProjects } from '@/services/projects.services';
-import type { Employee } from '@/types/employee';
+import type { Resource } from '@/types/resource';
 import type { Project } from '@/types/project';
 import { useAuth } from '@/contexts/auth-context';
 import WelcomeModal from '@/components/app/welcome-modal';
-import { updateUserProfile } from '@/services/users.services';
+import { updateTeamMemberProfile } from '@/services/users.services';
 
 type SkillsData = {
   name: string;
@@ -33,29 +33,29 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user || !user.companyId) {
+      if (!user || user.type !== 'team' || !user.companyId) {
         setLoading(false);
         return;
       }
 
       setLoading(true);
-      const [employees, projects] = await Promise.all([
-        getEmployees(user.companyId),
+      const [resources, projects] = await Promise.all([
+        getResources(user.companyId),
         getProjects(user.companyId),
       ]);
 
-      const totalEmployees = employees.length;
+      const totalResources = resources.length;
       const projectsInProgress = projects.filter(
-        (p) => p.status === 'In Progress'
+        (p) => p.projectStatus === 'Active'
       ).length;
-      const availableEmployees = employees.filter(
-        (e) => e.availability === 'Available'
+      const availableResources = resources.filter(
+        (e) => e.availabilityStatus === 'Available'
       ).length;
 
       setStats([
         {
-          title: 'Total Employees',
-          value: totalEmployees.toString(),
+          title: 'Total Resources',
+          value: totalResources.toString(),
           icon: 'Users',
         },
         {
@@ -65,16 +65,18 @@ export default function DashboardPage() {
         },
         {
           title: 'Available for Projects',
-          value: availableEmployees.toString(),
+          value: availableResources.toString(),
           icon: 'UserCheck',
         },
       ]);
 
-      const skillsCount = employees
-        .flatMap((e) => e.skills)
+      const skillsCount = resources
+        .flatMap((e) => e.technicalSkills?.map((s) => s.name) || [])
         .reduce(
           (acc, skill) => {
-            acc[skill] = (acc[skill] || 0) + 1;
+            if (skill) {
+              acc[skill] = (acc[skill] || 0) + 1;
+            }
             return acc;
           },
           {} as Record<string, number>
@@ -88,7 +90,7 @@ export default function DashboardPage() {
 
       setRecentProjects(projects.slice(0, 4));
 
-      if (user && !user.onboardingCompleted) {
+      if (user && user.type === 'team' && !user.onboardingCompleted) {
         setShowWelcomeModal(true);
       }
 
@@ -99,8 +101,8 @@ export default function DashboardPage() {
   }, [user]);
 
   const handleWelcomeComplete = async () => {
-    if (user) {
-      await updateUserProfile(user.uid, { onboardingCompleted: true });
+    if (user && user.type === 'team') {
+      await updateTeamMemberProfile(user.uid, { onboardingCompleted: true });
       await refreshUser(); // Refresh user state in context
       setShowWelcomeModal(false);
     }
@@ -114,12 +116,26 @@ export default function DashboardPage() {
     );
   }
 
+  if (user?.type === 'platform') {
+    return (
+      <div>
+        <h1 className="font-headline text-3xl font-bold">
+          Platform Admin Dashboard
+        </h1>
+        <p className="text-muted-foreground">
+          Welcome, {user.firstName}. The platform administration panel is under
+          construction.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <WelcomeModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeComplete}
-        userName={user?.name || 'there'}
+        userName={user?.firstName || 'there'}
       />
       <Dashboard
         stats={stats}
