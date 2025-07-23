@@ -73,9 +73,12 @@ export default function UserProfileForm({
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       email: user.email || '',
-      phone: user.phone || '',
-      gender: user.gender,
-      dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : undefined,
+      phone: user.type === 'team' ? user.phone || '' : '',
+      gender: user.type === 'team' ? user.gender : undefined,
+      dateOfBirth:
+        user.type === 'team' && user.dateOfBirth
+          ? new Date(user.dateOfBirth)
+          : undefined,
       designation: user.designation || '',
     },
   });
@@ -144,7 +147,12 @@ export default function UserProfileForm({
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user.profilePictureUrl} alt={displayName} />
+                  <AvatarImage
+                    src={
+                      user.type === 'team' ? user.profilePictureUrl : undefined
+                    }
+                    alt={displayName}
+                  />
                   <AvatarFallback className="text-3xl">
                     {user.firstName?.charAt(0).toUpperCase() ?? <User />}
                   </AvatarFallback>

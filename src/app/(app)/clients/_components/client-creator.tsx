@@ -5,7 +5,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Building, PlusCircle } from 'lucide-react';
-import { serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -68,7 +68,7 @@ export default function ClientCreator({
   });
 
   const onSubmit: SubmitHandler<ClientFormValues> = async (data) => {
-    if (!user || user.type !== 'team' || !user.companyId) {
+    if (user?.type !== 'team' || !user.companyId) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -79,15 +79,21 @@ export default function ClientCreator({
 
     setIsSaving(true);
     try {
-      const timestamp = serverTimestamp();
-      const newClient = await addClient({
+      const now = Timestamp.now();
+      const newClientData: Omit<Client, 'id'> = {
         ...data,
         companyId: user.companyId,
         createdBy: user.uid,
         updatedBy: user.uid,
         isActive: true,
-        createdAt: timestamp,
-        updatedAt: timestamp,
+        createdAt: now,
+        updatedAt: now,
+      };
+      // To satisfy Firestore, we pass a serverTimestamp for the actual write.
+      const newClient = await addClient({
+        ...newClientData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       toast({
@@ -95,7 +101,7 @@ export default function ClientCreator({
         description: `Client "${newClient.clientName}" has been successfully created.`,
       });
 
-      onClientCreated(newClient);
+      onClientCreated({ ...newClient, ...newClientData });
       form.reset();
       onOpenChange?.(false);
     } catch (error) {

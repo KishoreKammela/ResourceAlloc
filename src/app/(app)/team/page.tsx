@@ -14,7 +14,7 @@ export default function TeamPage() {
 
   useEffect(() => {
     async function fetchInvitations() {
-      if (user?.companyId) {
+      if (user?.type === 'team' && user.companyId) {
         setLoading(true);
         const fetchedInvitations = await getInvitationsByCompany(
           user.companyId
@@ -37,7 +37,7 @@ export default function TeamPage() {
     );
   }
 
-  if (!user || !user.companyId) {
+  if (user?.type !== 'team' || !user.companyId) {
     return (
       <div className="text-center text-destructive">
         Could not load company information. Please try again.

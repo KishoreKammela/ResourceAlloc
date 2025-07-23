@@ -227,7 +227,7 @@ export default function ResourceComparisonClient() {
               </TableCell>
               {resources.map((resource) => (
                 <TableCell key={resource.id} className="text-center">
-                  {formatCurrency(resource.monthly_salary)}
+                  {formatCurrency(resource.costRate)}
                 </TableCell>
               ))}
             </TableRow>

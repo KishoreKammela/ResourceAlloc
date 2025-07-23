@@ -212,7 +212,7 @@ export default function ResourceProfilePageClient({
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center text-muted-foreground">
                 <DollarSign className="mr-2 h-4 w-4" />
-                <span>Salary: {formatCurrency(resource.monthly_salary)}</span>
+                <span>Salary: {formatCurrency(resource.costRate)}</span>
               </div>
               <div className="flex items-center text-muted-foreground">
                 <DollarSign className="mr-2 h-4 w-4" />

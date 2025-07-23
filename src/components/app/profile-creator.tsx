@@ -36,7 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeResume } from '@/app/actions';
-import { addEmployee } from '@/services/employees.services';
+import { addResource } from '@/services/resources.services';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -48,15 +48,24 @@ import {
   SelectValue,
 } from '../ui/select';
 import { useAuth } from '@/contexts/auth-context';
-import { updateUserProfile } from '@/services/users.services';
+import { updateTeamMemberProfile } from '@/services/users.services';
 import { Progress } from '../ui/progress';
 import { fileToDataUri } from '@/lib/utils';
+import { Skill } from '@/types/resource';
 
 const profileFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters long.'),
+  firstName: z.string().min(1, 'First name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
   email: z.string().email('Please enter a valid email address.'),
-  title: z.string().min(2, 'Title must be at least 2 characters long.'),
-  availability: z.enum(['Available', 'On Project']),
+  designation: z
+    .string()
+    .min(2, 'Designation must be at least 2 characters long.'),
+  availabilityStatus: z.enum([
+    'Available',
+    'Partially Available',
+    'Unavailable',
+    'On Leave',
+  ]),
   workMode: z.enum(['Remote', 'Hybrid', 'On-site']),
 });
 
@@ -75,7 +84,14 @@ const steps = [
   {
     id: 1,
     name: 'Basic Information',
-    fields: ['name', 'email', 'title', 'availability', 'workMode'],
+    fields: [
+      'firstName',
+      'lastName',
+      'email',
+      'designation',
+      'availabilityStatus',
+      'workMode',
+    ],
   },
   { id: 2, name: 'Skills' },
 ];
@@ -89,7 +105,7 @@ export default function ProfileCreator({
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [skills, setSkills] = useState<string[]>([]);
+  const [technicalSkills, setTechnicalSkills] = useState<Skill[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [analysisResult, setAnalysisResult] =
     useState<ResumeAnalysisResult | null>(null);
@@ -98,22 +114,29 @@ export default function ProfileCreator({
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || '',
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
       email: user?.email || '',
-      title: user?.role || '',
-      availability: 'Available',
+      designation: user?.type === 'team' ? user.designation || user.role : '',
+      availabilityStatus: 'Available',
       workMode: 'Remote',
     },
   });
 
-  const addSkill = (skill: string) => {
-    if (skill && !skills.includes(skill)) {
-      setSkills((prev) => [...prev, skill]);
+  const addSkill = (skillName: string) => {
+    const trimmedSkill = skillName.trim();
+    if (trimmedSkill && !technicalSkills.some((s) => s.name === trimmedSkill)) {
+      setTechnicalSkills((prev) => [
+        ...prev,
+        { name: trimmedSkill, level: 'Intermediate' }, // Default level
+      ]);
     }
   };
 
   const removeSkill = (skillToRemove: string) => {
-    setSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
+    setTechnicalSkills((prev) =>
+      prev.filter((skill) => skill.name !== skillToRemove)
+    );
   };
 
   const handleAddNewSkill = () => {
@@ -164,7 +187,7 @@ export default function ProfileCreator({
   };
 
   const processForm: SubmitHandler<ProfileFormValues> = async (data) => {
-    if (!user?.uid || !user.companyId) {
+    if (user?.type !== 'team' || !user.companyId) {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
@@ -176,28 +199,30 @@ export default function ProfileCreator({
 
     setIsSaving(true);
     try {
-      const createdEmployee = await addEmployee({
+      const createdResource = await addResource({
         ...data,
-        skills,
-        status: 'Approved',
-        uid: user.uid,
         companyId: user.companyId,
+        technicalSkills,
+        employmentStatus: 'active',
+        createdBy: user.uid,
+        updatedBy: user.uid,
+        isActive: true,
       });
 
       if (isOnboarding) {
-        await updateUserProfile(user.uid, {
+        await updateTeamMemberProfile(user.uid, {
           onboardingCompleted: true,
-          employeeId: createdEmployee.id,
+          resourceId: createdResource.id,
         });
         await refreshUser();
       }
 
       toast({
         title: 'Profile Created',
-        description: `A new profile for ${createdEmployee.name} has been successfully created.`,
+        description: `A new profile for ${createdResource.firstName} ${createdResource.lastName} has been successfully created.`,
       });
 
-      router.push(isOnboarding ? '/dashboard' : '/employees');
+      router.push(isOnboarding ? '/dashboard' : '/resources');
       router.refresh();
     } catch (error) {
       toast({
@@ -242,12 +267,12 @@ export default function ProfileCreator({
         <CardTitle className="font-headline text-2xl">
           {isOnboarding
             ? "Welcome! Let's set up your profile."
-            : 'Create Employee Profile'}
+            : 'Create Resource Profile'}
         </CardTitle>
         <CardDescription>
           {isOnboarding
             ? 'Please fill in your professional details to get started.'
-            : 'Manually enter the details for a new employee.'}
+            : 'Manually enter the details for a new resource.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -276,13 +301,13 @@ export default function ProfileCreator({
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="name"
+                        name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>First Name</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="e.g. Jane Doe"
+                                placeholder="e.g. Jane"
                                 {...field}
                                 disabled={isOnboarding}
                               />
@@ -293,13 +318,13 @@ export default function ProfileCreator({
                       />
                       <FormField
                         control={form.control}
-                        name="email"
+                        name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email Address</FormLabel>
+                            <FormLabel>Last Name</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="e.g. jane.doe@example.com"
+                                placeholder="e.g. Doe"
                                 {...field}
                                 disabled={isOnboarding}
                               />
@@ -311,10 +336,27 @@ export default function ProfileCreator({
                     </div>
                     <FormField
                       control={form.control}
-                      name="title"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title</FormLabel>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. jane.doe@example.com"
+                              {...field}
+                              disabled={isOnboarding}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="designation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Designation (Title)</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="e.g. Senior Software Engineer"
@@ -328,7 +370,7 @@ export default function ProfileCreator({
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="availability"
+                        name="availabilityStatus"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Availability</FormLabel>
@@ -345,8 +387,14 @@ export default function ProfileCreator({
                                 <SelectItem value="Available">
                                   Available
                                 </SelectItem>
-                                <SelectItem value="On Project">
-                                  On Project
+                                <SelectItem value="Partially Available">
+                                  Partially Available
+                                </SelectItem>
+                                <SelectItem value="Unavailable">
+                                  Unavailable
+                                </SelectItem>
+                                <SelectItem value="On Leave">
+                                  On Leave
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -481,23 +529,23 @@ export default function ProfileCreator({
                     <div>
                       <FormLabel>Current Skills</FormLabel>
                       <div className="flex min-h-[80px] flex-wrap gap-2 rounded-md border p-4">
-                        {skills.map((skill) => (
+                        {technicalSkills.map((skill) => (
                           <Badge
-                            key={skill}
+                            key={skill.name}
                             variant="default"
                             className="flex items-center gap-2 border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/20"
                           >
-                            {skill}
+                            {skill.name}
                             <button
                               type="button"
-                              onClick={() => removeSkill(skill)}
+                              onClick={() => removeSkill(skill.name)}
                               className="rounded-full p-0.5 hover:bg-black/10"
                             >
                               <X className="h-3 w-3" />
                             </button>
                           </Badge>
                         ))}
-                        {skills.length === 0 && (
+                        {technicalSkills.length === 0 && (
                           <p className="text-sm text-muted-foreground">
                             Upload a resume or add skills manually below.
                           </p>

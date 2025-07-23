@@ -56,7 +56,7 @@ export async function getTeamMemberProfile(
  */
 export async function updateTeamMemberProfile(
   uid: string,
-  data: Partial<TeamMember>
+  data: Partial<Omit<TeamMember, 'uid'>>
 ): Promise<void> {
   const userRef = doc(db, 'team_members', uid);
   await updateDoc(userRef, {

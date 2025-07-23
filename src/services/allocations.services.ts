@@ -33,7 +33,7 @@ export async function createAllocation(
     ...allocationData,
     createdAt: Timestamp.now(), // Use client-side timestamp for immediate use
     updatedAt: Timestamp.now(),
-  } as Allocation;
+  };
 }
 
 /**

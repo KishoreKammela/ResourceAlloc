@@ -42,8 +42,16 @@ import { serverTimestamp } from 'firebase/firestore';
 
 // This union type allows our user object to hold either a TeamMember or a PlatformUser
 export type AuthenticatedUser =
-  | ({ type: 'team'; emailVerified: boolean } & TeamMember)
-  | ({ type: 'platform'; emailVerified: boolean } & PlatformUser);
+  | ({
+      type: 'team';
+      emailVerified: boolean;
+      uid: string;
+      email: string | null;
+    } & Omit<TeamMember, 'uid' | 'email'>)
+  | ({
+      type: 'platform';
+      emailVerified: boolean;
+    } & PlatformUser);
 
 interface AuthContextType {
   user: AuthenticatedUser | null;
@@ -180,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [firstName, ...lastNameParts] = data.name.split(' ');
       const lastName = lastNameParts.join(' ');
 
-      const userProfileData = {
+      const userProfileData: Omit<TeamMember, 'createdAt' | 'updatedAt'> = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         firstName,
@@ -229,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [firstName, ...lastNameParts] = name.split(' ');
       const lastName = lastNameParts.join(' ');
 
-      const userProfileData = {
+      const userProfileData: Omit<TeamMember, 'createdAt' | 'updatedAt'> = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         firstName,
